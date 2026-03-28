@@ -1,60 +1,87 @@
-export type DeepInsightRecord = {
+export type FortuneFavorite = {
   id: string;
   userId: string;
   createdAt: string; // ISO
-  dump: string;
-  cognitive_upgrade: string;
-  risk_avoidance: string;
-  future_seed: string;
-  one_small_step: string;
+  date: string; // YYYY-MM-DD
+  greeting: string;
+  message: string;
+  actions: string[];
+  luckyEvents: string[];
 };
 
-function keyForUser(userId: string) {
-  return `favor_me_handbook_${userId}`;
+export type GuideFavorite = {
+  id: string;
+  userId: string;
+  createdAt: string; // ISO
+  question: string;
+  answerBook: string;
+  emotionalInsight: string;
+  actionGuide: string;
+};
+
+const MAX_ITEMS = 200;
+
+function fortuneKey(userId: string) {
+  return `favor_me_fortune_favorites_${userId}`;
 }
 
-export function loadHandbook(userId: string): DeepInsightRecord[] {
+function guideKey(userId: string) {
+  return `favor_me_guide_favorites_${userId}`;
+}
+
+function loadList<T>(key: string): T[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(keyForUser(userId));
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
-    const parsed = JSON.parse(raw) as DeepInsightRecord[];
+    const parsed = JSON.parse(raw) as T[];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-export function saveHandbook(userId: string, items: DeepInsightRecord[]) {
+function saveList<T>(key: string, list: T[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(keyForUser(userId), JSON.stringify(items.slice(0, 200)));
+  localStorage.setItem(key, JSON.stringify(list.slice(0, MAX_ITEMS)));
 }
 
-export function addRecord(userId: string, record: Omit<DeepInsightRecord, "userId">) {
-  const list = loadHandbook(userId);
-  const next: DeepInsightRecord[] = [{ ...record, userId }, ...list].slice(0, 200);
-  saveHandbook(userId, next);
+export function loadFortuneFavorites(userId: string): FortuneFavorite[] {
+  return loadList<FortuneFavorite>(fortuneKey(userId));
+}
+
+export function addFortuneFavorite(
+  userId: string,
+  item: Omit<FortuneFavorite, "userId">,
+): FortuneFavorite[] {
+  const list = loadFortuneFavorites(userId);
+  const deduped = list.filter((it) => it.date !== item.date);
+  const next: FortuneFavorite[] = [{ ...item, userId }, ...deduped];
+  saveList(fortuneKey(userId), next);
   return next;
 }
 
-function startOfWeek(d: Date) {
-  const date = new Date(d);
-  const day = date.getDay(); // 0 Sun ... 6 Sat
-  const diff = (day + 6) % 7; // Monday=0
-  date.setDate(date.getDate() - diff);
-  date.setHours(0, 0, 0, 0);
-  return date;
+export function removeFortuneFavorite(userId: string, id: string) {
+  const list = loadFortuneFavorites(userId).filter((it) => it.id !== id);
+  saveList(fortuneKey(userId), list);
+  return list;
 }
 
-export function weeklySummary(userId: string, now = new Date()) {
-  const items = loadHandbook(userId);
-  const start = startOfWeek(now).getTime();
-  const end = start + 7 * 24 * 60 * 60 * 1000;
-  const count = items.filter((r) => {
-    const t = new Date(r.createdAt).getTime();
-    return t >= start && t < end;
-  }).length;
-  const compound = Math.min(99, Math.round(count * 6)); // demo：每次转化 +6%
-  return { count, compoundPercent: compound };
+export function loadGuideFavorites(userId: string): GuideFavorite[] {
+  return loadList<GuideFavorite>(guideKey(userId));
+}
+
+export function addGuideFavorite(userId: string, item: Omit<GuideFavorite, "userId">) {
+  const list = loadGuideFavorites(userId);
+  const deduped = list.filter((it) => it.id !== item.id);
+  const next: GuideFavorite[] = [{ ...item, userId }, ...deduped];
+  saveList(guideKey(userId), next);
+  return next;
+}
+
+export function removeGuideFavorite(userId: string, id: string) {
+  const list = loadGuideFavorites(userId).filter((it) => it.id !== id);
+  saveList(guideKey(userId), list);
+  return list;
 }
 

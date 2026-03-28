@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import { Quicksand } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import {
+  appBackgroundGradient,
+  bodyFallbackStyle,
+  rootCssVarsStyle,
+} from "@/lib/root-inline-styles";
+import type { CSSProperties } from "react";
 
 const quicksand = Quicksand({
   subsets: ["latin"],
@@ -10,8 +16,8 @@ const quicksand = Quicksand({
 });
 
 export const metadata: Metadata = {
-  title: "FavorMe",
-  description: "Everything happens for your good · Web app demo",
+  title: "FavorMe 心安指南",
+  description: "轻治愈情绪决策辅助工具",
 };
 
 export default function RootLayout({
@@ -19,10 +25,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const shellStyle = {
+    minHeight: "100dvh",
+    background: appBackgroundGradient,
+  } satisfies CSSProperties;
+
   return (
-    <html lang="en" className={quicksand.variable}>
-      <body className="font-sans antialiased">
-        <div className="min-h-dvh bg-app">
+    <html lang="zh-CN" className={quicksand.variable} style={rootCssVarsStyle}>
+      <body className="font-sans antialiased" style={bodyFallbackStyle}>
+        <div className="min-h-dvh bg-app" style={shellStyle}>
           <Providers>{children}</Providers>
         </div>
       </body>

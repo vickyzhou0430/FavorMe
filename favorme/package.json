@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "rm -rf .next && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "@next/swc-darwin-arm64": "^16.2.1",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
     "next": "14.2.3",
@@ -20,6 +20,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.27",
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
     "postcss": "^8",

@@ -65,7 +65,8 @@ body {
     padding-top: calc(var(--safe-top) + 8px);
     padding-left: max(14px, var(--safe-left));
     padding-right: max(14px, var(--safe-right));
-    padding-bottom: calc(var(--safe-bottom) + 92px);
+    /* 预留足够空间，避免底部 Tab 挡住主操作按钮 */
+    padding-bottom: calc(var(--safe-bottom) + 120px);
   }
 
   .mobile-nav-safe {
@@ -164,4 +165,11 @@ body {
   .dump-input:focus {
     box-shadow: 0 0 0 2px rgba(255, 215, 120, 0.18);
   }
+}
+
+/* Unlayered: beats @layer utilities; crisp white (heavy text-shadow was reading as “gray” on some screens) */
+.fortune-gentle-message {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  text-shadow: none;
 }

@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, Menu, User, Wand2, CalendarHeart, Dice5, Heart } from "lucide-react";
+import { ArrowLeft, Menu, User, Wand2, CalendarHeart, Heart } from "lucide-react";
 import { useEffect } from "react";
 import { useUser } from "@/components/UserContext";
 
 const items = [
-  { href: "/fortune", label: "Fortune", icon: CalendarHeart },
-  { href: "/decision", label: "Decision", icon: Dice5 },
-  { href: "/board", label: "Insight", icon: Wand2 },
-  { href: "/profile", label: "Me", icon: User },
+  { href: "/fortune", label: "今日运势", icon: CalendarHeart },
+  { href: "/board", label: "心安指南", icon: Wand2 },
+  { href: "/handbook", label: "收藏", icon: Heart },
+  { href: "/profile", label: "我的", icon: User },
 ];
 
 export function AppShell({
@@ -29,8 +29,16 @@ export function AppShell({
 
   useEffect(() => {
     if (pathname?.startsWith("/onboarding")) return;
+    if (pathname?.startsWith("/login")) return;
     if (!hydrated) return;
-    if (!user) router.replace("/onboarding");
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+    if (!user.onboardingDone) {
+      router.replace("/onboarding");
+      return;
+    }
   }, [pathname, router, user, hydrated]);
 
   return (
@@ -50,7 +58,7 @@ export function AppShell({
           ) : (
             <button
               type="button"
-              aria-label="Menu"
+              aria-label="菜单"
               className="flex size-12 items-center justify-center rounded-full border border-white/15 bg-white/14 text-white/90 shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
             >
               <Menu className="size-5" />
@@ -58,10 +66,10 @@ export function AppShell({
           )}
           <div className="pointer-events-none absolute left-1/2 top-1/2 w-[58%] -translate-x-1/2 -translate-y-[46%] text-center">
             <div className="app-h1 truncate">
-              {title || "Fortune Mood"}
+              {title || "FavorMe"}
             </div>
             <div className="app-meta mt-0.5 truncate">
-              {subtitle || "Let today’s luck land softly."}
+              {subtitle || "万事发生，皆有利于你"}
             </div>
           </div>
           <div className="flex size-12 shrink-0 items-center justify-center gap-2">
@@ -69,7 +77,7 @@ export function AppShell({
               <Link
                 href="/handbook"
                 className="flex size-12 items-center justify-center rounded-full border border-white/15 bg-white/14 text-white/90 shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
-                aria-label="Handbook"
+                aria-label="收藏"
               >
                 <Heart className="size-5" />
               </Link>

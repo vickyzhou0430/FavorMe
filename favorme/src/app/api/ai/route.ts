@@ -11,11 +11,11 @@ type Body = {
 function ensurePositiveFallback(userText: string) {
   const safe = (userText || "").slice(0, 120);
   return [
-    `1) Smarter avoidance: this clarifies what isn’t for you—your next step gets lighter.`,
-    `2) Experience compounds: your judgment is sharper, and smoother choices follow.`,
-    `3) Opportunity nears: as old paths refresh, better-fit people and resources appear.`,
+    `1）你现在的犹豫，正在帮你筛掉不适合自己的选项。`,
+    `2）先做一个低风险的小动作，心会先稳下来。`,
+    `3）当你稳住节奏，机会会更清晰地靠近你。`,
     ``,
-    `(You wrote: ${safe || "empty"})`,
+    `（你的输入：${safe || "空"}）`,
   ].join("\n");
 }
 

@@ -1,50 +1,62 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { WheelPicker } from "@/components/ui/WheelPicker";
 import { useUser } from "@/components/UserContext";
-import { MoonCloudHero } from "@/components/ui/MoonCloudHero";
-import {
-  calcLifeNumber,
-  saveUser,
-  type FocusArea,
-  type Gender,
-  type UserProfile,
-} from "@/lib/user-store";
-import { Sparkles, Sun, Moon, Flame, Leaf, Star } from "lucide-react";
+import { saveUser, type Gender, type UserProfile } from "@/lib/user-store";
 
 const genders: Array<{ value: Gender; label: string }> = [
-  { value: "female", label: "She" },
-  { value: "male", label: "He" },
-  { value: "other", label: "They" },
+  { value: "female", label: "女" },
+  { value: "male", label: "男" },
+  { value: "other", label: "其他" },
 ];
 
-const focusAreas: Array<{ value: FocusArea; title: string; desc: string }> = [
-  { value: "career", title: "Career", desc: "Smoother progress and better openings" },
-  { value: "relationship", title: "Relationships", desc: "Softer connection, freer expression" },
-  { value: "wealth", title: "Wealth", desc: "Calmer building, wiser spending" },
-  { value: "wellbeing", title: "Mind & body", desc: "Steadier energy, lighter rhythm" },
+const mbtiOptions = [
+  "INTJ",
+  "INTP",
+  "ENTJ",
+  "ENTP",
+  "INFJ",
+  "INFP",
+  "ENFJ",
+  "ENFP",
+  "ISTJ",
+  "ISFJ",
+  "ESTJ",
+  "ESFJ",
+  "ISTP",
+  "ISFP",
+  "ESTP",
+  "ESFP",
 ];
 
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
+const shichenOptions = [
+  "子时（23:00-00:59）",
+  "丑时（01:00-02:59）",
+  "寅时（03:00-04:59）",
+  "卯时（05:00-06:59）",
+  "辰时（07:00-08:59）",
+  "巳时（09:00-10:59）",
+  "午时（11:00-12:59）",
+  "未时（13:00-14:59）",
+  "申时（15:00-16:59）",
+  "酉时（17:00-18:59）",
+  "戌时（19:00-20:59）",
+  "亥时（21:00-22:59）",
+];
 
-function iconForLifeNumber(n: number) {
-  if (n === 1) return Sun;
-  if (n === 2) return Moon;
-  if (n === 3) return Flame;
-  if (n === 4) return Leaf;
-  if (n === 5) return Star;
-  if (n === 6) return Sparkles;
-  if (n === 7) return Star;
-  if (n === 8) return Flame;
-  return Leaf;
-}
+const introSlides = [
+  {
+    title: "今日运势",
+    desc: "每天为你生成温柔寄语、行动建议和幸运小事，帮你从焦虑中找回可执行的小节奏。",
+  },
+  {
+    title: "心安指南",
+    desc: "遇到纠结时，先给你一句答案之书，再提供专属解读和低风险行动建议。",
+  },
+];
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -52,59 +64,53 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (!hydrated) return;
-    if (user) router.replace("/fortune");
-  }, [hydrated, router, user]);
+    if (user?.onboardingDone) router.replace("/fortune");
+  }, [hydrated, router, user?.onboardingDone]);
 
-  const now = new Date();
-  const years = useMemo(() => {
-    const max = now.getFullYear();
-    const min = max - 80;
-    const opts = [];
-    for (let y = max; y >= min; y--) opts.push({ value: y, label: `${y}` });
-    return opts;
-  }, [now]);
+  useEffect(() => {
+    if (!user) return;
+    if (user.name) setName(user.name);
+    if (user.birthday) setBirthday(user.birthday);
+    if (user.avatar) setAvatar(user.avatar);
+    if (user.gender) setGender(user.gender);
+    if (user.mbti) setMbti(user.mbti);
+    if (user.birthTime) setBirthTime(user.birthTime);
+    if (user.account) setAccount(user.account);
+  }, [user]);
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [account, setAccount] = useState(user?.account || "");
   const [name, setName] = useState("");
   const [gender, setGender] = useState<Gender>("female");
-  const [year, setYear] = useState(years[0]?.value ?? 2000);
-  const [month, setMonth] = useState(1);
-  const [day, setDay] = useState(1);
-  const [hour, setHour] = useState(9);
-  const [minute, setMinute] = useState(0);
-  const [focusArea, setFocusArea] = useState<FocusArea>("career");
+  const [birthday, setBirthday] = useState("");
+  const [avatar, setAvatar] = useState("");
+  const [mbti, setMbti] = useState("");
+  const [birthTime, setBirthTime] = useState("");
+  const [introIdx, setIntroIdx] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const canNextInfo = name.trim() && birthday && avatar;
 
-  const daysInMonth = useMemo(() => {
-    const d = new Date(year, month, 0).getDate();
-    return d;
-  }, [month, year]);
-
-  const months = useMemo(
-    () => Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: `${i + 1} mo` })),
-    [],
-  );
-  const days = useMemo(
-    () =>
-      Array.from({ length: daysInMonth }, (_, i) => ({
-        value: i + 1,
-        label: `${i + 1} d`,
-      })),
-    [daysInMonth],
-  );
-  const hours = useMemo(
-    () => Array.from({ length: 24 }, (_, i) => ({ value: i, label: `${pad2(i)} h` })),
-    [],
-  );
-  const minutes = useMemo(
-    () => Array.from({ length: 60 }, (_, i) => ({ value: i, label: `${pad2(i)} m` })),
-    [],
-  );
-
-  const birthday = `${year}-${pad2(month)}-${pad2(Math.min(day, daysInMonth))}`;
-  const birthTime = `${pad2(hour)}:${pad2(minute)}`;
-  const lifeNumber = calcLifeNumber(birthday);
-  const LifeIcon = iconForLifeNumber(lifeNumber);
-  const focusTitle = focusAreas.find((f) => f.value === focusArea)?.title ?? focusArea;
+  const zodiac = useMemo(() => {
+    if (!birthday) return "";
+    const md = birthday.slice(5);
+    const ranges: Array<[string, string, string]> = [
+      ["03-21", "04-19", "白羊座"],
+      ["04-20", "05-20", "金牛座"],
+      ["05-21", "06-21", "双子座"],
+      ["06-22", "07-22", "巨蟹座"],
+      ["07-23", "08-22", "狮子座"],
+      ["08-23", "09-22", "处女座"],
+      ["09-23", "10-23", "天秤座"],
+      ["10-24", "11-22", "天蝎座"],
+      ["11-23", "12-21", "射手座"],
+      ["12-22", "12-31", "摩羯座"],
+      ["01-01", "01-19", "摩羯座"],
+      ["01-20", "02-18", "水瓶座"],
+      ["02-19", "03-20", "双鱼座"],
+    ];
+    const hit = ranges.find(([start, end]) => md >= start && md <= end);
+    return hit?.[2] || "";
+  }, [birthday]);
 
   function next() {
     setStep((s) => (s === 4 ? 4 : ((s + 1) as 1 | 2 | 3 | 4)));
@@ -115,61 +121,112 @@ export default function OnboardingPage() {
 
   function commit() {
     const userId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
+      user?.userId ||
+      (typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
-        : `u_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+        : `u_${Date.now()}_${Math.random().toString(16).slice(2)}`);
     const profile: UserProfile = {
       userId,
+      phone: user?.phone,
+      account: account.trim() || user?.phone || "手机号用户",
       name: name.trim(),
       gender,
       birthday,
+      avatar,
+      mbti: mbti || undefined,
       birthTime,
-      focusArea,
+      onboardingDone: true,
     };
     saveUser(profile);
     setUser(profile);
     router.replace("/fortune");
   }
 
+  async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => setAvatar(String(reader.result || ""));
+    reader.readAsDataURL(f);
+  }
+
+  function onIntroTouchStart(e: React.TouchEvent<HTMLDivElement>) {
+    setTouchStartX(e.touches[0]?.clientX ?? null);
+  }
+
+  function onIntroTouchEnd(e: React.TouchEvent<HTMLDivElement>) {
+    if (touchStartX === null) return;
+    const dx = (e.changedTouches[0]?.clientX ?? 0) - touchStartX;
+    if (dx <= -50) setIntroIdx((v) => Math.min(v + 1, introSlides.length - 1));
+    if (dx >= 50) setIntroIdx((v) => Math.max(v - 1, 0));
+    setTouchStartX(null);
+  }
+
   return (
     <main className="relative mx-auto flex min-h-dvh w-full max-w-[520px] flex-col items-center justify-center px-3 py-6 sm:px-4 sm:py-8">
       <div className="starfield absolute inset-0 -z-10" />
-
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[460px]"
-      >
-        <div className="mb-4 grid gap-3">
-          <div className="-translate-y-3 sm:-translate-y-5 -mb-1">
-            <MoonCloudHero
-              title="Onboarding"
-              subtitle="Welcome to your FavorMe journey"
-            />
-          </div>
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-sm text-white/80 backdrop-blur-xl">
-              <Sparkles className="size-4 text-white" />
-              Step {step} / 4
-            </div>
+      <div className="w-full max-w-[460px]">
+        <div className="mb-4 text-center">
+          <div className="inline-flex items-center rounded-full border border-white/12 bg-white/8 px-3 py-1 text-sm text-white/80 backdrop-blur-xl">
+            引导 {step} / 4
           </div>
         </div>
 
         {step === 1 && (
-          <Card
-            title="Step 1 · Name"
-            subtitle="What should the universe call you? This becomes your energy tag."
-          >
-            <div className="grid gap-3">
+          <Card title="填写基础信息" subtitle="用于生成你的个性化运势内容">
+            <div className="grid gap-4">
               <label className="grid gap-1">
-                <div className="text-sm font-semibold text-white/90">Your name</div>
+                <div className="text-sm font-semibold text-white/90">账号（可选）</div>
+                <input
+                  value={account}
+                  onChange={(e) => setAccount(e.target.value)}
+                  className="ios-input"
+                  placeholder="手机号 / 微信昵称"
+                />
+              </label>
+              <label className="grid gap-1">
+                <div className="text-sm font-semibold text-white/90">姓名（必填）</div>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="ios-input"
-                  placeholder="e.g. River"
+                  placeholder="请输入你的姓名"
                 />
               </label>
+              <label className="grid gap-1">
+                <div className="text-sm font-semibold text-white/90">头像（必填）</div>
+                <div className="flex items-center gap-3">
+                  <div className="flex size-14 items-center justify-center overflow-hidden rounded-2xl border border-white/18 bg-white/8">
+                    {avatar ? (
+                      <img src={avatar} alt="avatar" className="size-full object-cover" />
+                    ) : (
+                      <span className="text-xs text-white/60">未上传</span>
+                    )}
+                  </div>
+                  <label className="cursor-pointer rounded-2xl border border-white/16 bg-white/10 px-3 py-2 text-sm text-white/90">
+                    拍照/相册上传
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      style={{ display: "none" }}
+                      onChange={onPickAvatar}
+                    />
+                  </label>
+                </div>
+              </label>
+
+              <label className="grid gap-1">
+                <div className="text-sm font-semibold text-white/90">生日（必填）</div>
+                <input
+                  type="date"
+                  value={birthday}
+                  onChange={(e) => setBirthday(e.target.value)}
+                  className="ios-input"
+                />
+                {zodiac && <div className="text-xs text-white/70">已识别星座：{zodiac}</div>}
+              </label>
+
               <div className="grid grid-cols-3 gap-2">
                 {genders.map((g) => {
                   const active = gender === g.value;
@@ -190,9 +247,37 @@ export default function OnboardingPage() {
                 })}
               </div>
 
+              <label className="grid gap-1">
+                <div className="text-sm font-semibold text-white/90">MBTI（选填）</div>
+                <select value={mbti} onChange={(e) => setMbti(e.target.value)} className="ios-input">
+                  <option value="">请选择 MBTI</option>
+                  {mbtiOptions.map((it) => (
+                    <option key={it} value={it}>
+                      {it}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1">
+                <div className="text-sm font-semibold text-white/90">出生时间（选填）</div>
+                <select
+                  value={birthTime}
+                  onChange={(e) => setBirthTime(e.target.value)}
+                  className="ios-input"
+                >
+                  <option value="">请选择时辰</option>
+                  {shichenOptions.map((it) => (
+                    <option key={it} value={it}>
+                      {it}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
               <div className="mt-2 flex justify-end">
-                <Button disabled={!name.trim()} onClick={next}>
-                  Continue
+                <Button disabled={!canNextInfo} onClick={next}>
+                  下一步
                 </Button>
               </div>
             </div>
@@ -201,166 +286,91 @@ export default function OnboardingPage() {
 
         {step === 2 && (
           <Card
-            title="Step 2 · Time & place"
-            subtitle="Pick birthday and birth time. Clearer coordinates, clearer guidance."
+            title="功能介绍"
+            subtitle="支持左右滑动查看「今日运势」和「心安指南」"
           >
-            <div className="grid gap-3">
-              <label className="grid gap-1">
-                <div className="text-sm font-semibold text-white/90">Birthday</div>
-                <div className="grid grid-cols-3 gap-2">
-                  <WheelPicker
-                    ariaLabel="Year"
-                    value={year}
-                    options={years}
-                    onChange={(v) => setYear(v)}
-                  />
-                  <WheelPicker
-                    ariaLabel="Month"
-                    value={month}
-                    options={months}
-                    onChange={(v) => {
-                      setMonth(v);
-                      setDay(1);
-                    }}
-                  />
-                  <WheelPicker
-                    ariaLabel="Day"
-                    value={Math.min(day, daysInMonth)}
-                    options={days}
-                    onChange={(v) => setDay(v)}
-                  />
-                </div>
-              </label>
-
-              <label className="grid gap-1">
-                <div className="text-sm font-semibold text-white/90">Birth time</div>
-                <div className="grid grid-cols-2 gap-2">
-                  <WheelPicker
-                    ariaLabel="Hour"
-                    value={hour}
-                    options={hours}
-                    density="tight"
-                    onChange={(v) => setHour(v)}
-                  />
-                  <WheelPicker
-                    ariaLabel="Minute"
-                    value={minute}
-                    options={minutes}
-                    density="tight"
-                    onChange={(v) => setMinute(v)}
-                  />
-                </div>
-              </label>
-
-              <div className="glass-surface rounded-2xl p-3">
-                <div className="text-sm font-semibold text-white/90">Life path number</div>
-                <div className="mt-1.5 flex items-center gap-2.5">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/12">
-                    <LifeIcon className="size-5 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xl font-semibold text-white">{lifeNumber}</div>
-                    <div className="text-xs text-white/65">
-                      {birthday} · {birthTime}
-                    </div>
-                  </div>
+            <div
+              className="grid gap-4"
+              onTouchStart={onIntroTouchStart}
+              onTouchEnd={onIntroTouchEnd}
+            >
+              <div className="rounded-3xl border border-white/14 bg-white/8 p-4">
+                <div className="text-base font-semibold text-white">{introSlides[introIdx].title}</div>
+                <div className="mt-2 text-sm leading-relaxed text-white/80">
+                  {introSlides[introIdx].desc}
                 </div>
               </div>
-
-              <div className="mt-2 flex justify-between">
+              <div className="flex items-center justify-center gap-2">
+                {introSlides.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setIntroIdx(idx)}
+                    className={`h-2 rounded-full transition ${
+                      idx === introIdx ? "w-6 bg-white" : "w-2 bg-white/40"
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="text-center text-xs text-white/65">左右滑动可切换引导页</div>
+              <div className="flex justify-between">
                 <Button variant="ghost" onClick={back}>
-                  Back
+                  上一步
                 </Button>
-                <Button onClick={next}>Continue</Button>
+                <Button onClick={next}>下一步</Button>
               </div>
             </div>
           </Card>
         )}
 
         {step === 3 && (
-          <Card
-            title="Step 3 · Focus"
-            subtitle="Where do you want a little more cosmic bias lately? Pick one."
-          >
+          <Card title="给你的一封信" subtitle="来自心安小指南">
             <div className="grid gap-3">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {focusAreas.map((fa) => {
-                  const active = focusArea === fa.value;
-                  return (
-                    <button
-                      key={fa.value}
-                      type="button"
-                      onClick={() => setFocusArea(fa.value)}
-                      className={`rounded-3xl p-4 text-left transition ${
-                        active
-                          ? "border-2 border-white bg-white/[0.10] shadow-[0_0_20px_rgba(255,255,255,0.08)]"
-                          : "border border-white/[0.10] bg-white/[0.03] hover:border-white/16 hover:bg-white/[0.06]"
-                      }`}
-                    >
-                      <div
-                        className={`text-sm font-semibold ${active ? "text-white" : "text-white/60"}`}
-                      >
-                        {fa.title}
-                      </div>
-                      <div
-                        className={`mt-1 text-xs ${active ? "text-white/75" : "text-white/45"}`}
-                      >
-                        {fa.desc}
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="rounded-3xl border border-white/14 bg-white/8 p-4 text-sm leading-relaxed text-white/85">
+                嗨，{name || "你"}：
+                <br />
+                欢迎来到 FavorMe。这里不会给你压力，也不会用夸张结论吓你。
+                <br />
+                我们只做三件小事：帮你整理情绪、给你可执行建议、提醒你看见生活里的小确幸。
+                <br />
+                愿你在每一次犹豫里，都能温柔地找到方向。
+                <br />
+                —— 心安小指南
               </div>
-              <div className="mt-2 flex justify-between">
+              <div className="flex justify-between">
                 <Button variant="ghost" onClick={back}>
-                  Back
+                  上一步
                 </Button>
-                <Button onClick={next}>Create contract</Button>
+                <Button onClick={next}>下一步</Button>
               </div>
             </div>
           </Card>
         )}
 
         {step === 4 && (
-          <Card
-            title="Step 4 · Your card"
-            subtitle="Your contract card is ready. Enter the app and start transforming."
-          >
+          <Card title="开始你的治愈之旅" subtitle="已完成新手引导">
             <div className="grid gap-3">
-              <div className="relative overflow-hidden rounded-3xl border border-white/14 bg-white/10 p-5">
-                <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-[rgba(125,93,255,0.25)] blur-3xl" />
-                <div className="pointer-events-none absolute -left-20 -bottom-24 size-64 rounded-full bg-[rgba(73,195,255,0.18)] blur-3xl" />
-
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold leading-snug text-white sm:text-base">
-                      {name.trim() || "You"}, your positive field is on
-                    </div>
-                    <div className="mt-2 text-sm text-white/70">
-                      Life path {lifeNumber} · Focus {focusTitle}
-                    </div>
-                    <div className="mt-1 text-xs text-white/60">
-                      Coordinates: {birthday} {birthTime}
-                    </div>
-                  </div>
-                  <div className="flex size-12 shrink-0 items-center justify-center rounded-3xl bg-white/12">
-                    <LifeIcon className="size-6 text-white" />
-                  </div>
+              <div className="rounded-3xl border border-white/14 bg-white/8 p-4 text-sm text-white/85">
+                <div>欢迎你，{name}。</div>
+                <div className="mt-2">接下来你可以查看今日运势，也可以进入心安指南获得专属建议。</div>
+                <div className="mt-2 text-white/70">
+                  已记录：{zodiac || "星座待识别"} {mbti ? `· ${mbti}` : ""}{" "}
+                  {birthTime ? `· ${birthTime}` : ""}
                 </div>
               </div>
 
-              <div className="mt-2 flex justify-between">
+              <div className="flex justify-between">
                 <Button variant="ghost" onClick={back}>
-                  Back
+                  上一步
                 </Button>
-                <Button disabled={!name.trim()} onClick={commit}>
-                  Enter
+                <Button disabled={!canNextInfo} onClick={commit}>
+                  完成并进入首页
                 </Button>
               </div>
             </div>
           </Card>
         )}
-      </motion.div>
+      </div>
     </main>
   );
 }

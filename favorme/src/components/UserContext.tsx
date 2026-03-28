@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { loadUser, saveUser, type UserProfile } from "@/lib/user-store";
+import { loadUser, migrateUserScopedStorage, saveUser, type UserProfile } from "@/lib/user-store";
 
 type Ctx = {
   user: UserProfile | null;
@@ -20,6 +20,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setUserState(loadUser());
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (user?.userId) migrateUserScopedStorage(user.userId);
+  }, [user?.userId]);
 
   const api = useMemo<Ctx>(() => {
     return {

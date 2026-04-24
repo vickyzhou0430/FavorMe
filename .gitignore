@@ -1,1 +1,12 @@
 .DS_Store
+
+# 通用（各子项目可有独立 .gitignore 覆盖）
+.env
+.env.*
+!.env.example
+*.log
+dist/
+build/
+
+# 常见依赖目录（子项目如 demo/web 已有 node_modules 忽略）
+**/node_modules/

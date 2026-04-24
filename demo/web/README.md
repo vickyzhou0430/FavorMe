@@ -11,7 +11,7 @@
 
 ### 环境变量
 
-在项目根目录 `favorme/.env.local` 填写：
+在 `demo/web/.env.local` 填写（本目录为 Next 应用根目录）：
 
 - `NEXT_PUBLIC_AI_API_KEY`: 你的 API Key（OpenAI 兼容）
 - `NEXT_PUBLIC_AI_ENDPOINT`: 默认 `https://api.openai.com/v1`

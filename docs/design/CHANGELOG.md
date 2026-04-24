@@ -4,7 +4,7 @@
 
 | 日期 | 关联 PRD | Figma 位置/版本 | 摘要 | 设计 |
 |------|-----------|----------------|------|------|
-|  |  |  |  |  |
+| 2026-04-24 | — | 文件 [VIE](https://www.figma.com/design/IqgjnWBIiSRa0A2oUysUqN/VIE)，node `56-8411` | 在 `figma-sources` 建立当前主设计文件真源链接 | — |
 
 ## 使用说明
 

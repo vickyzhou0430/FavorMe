@@ -10,3 +10,7 @@ build/
 
 # 常见依赖目录（子项目如 demo/web 已有 node_modules 忽略）
 **/node_modules/
+.tmp/
+.github/
+.cursor/
+.tmp/figma/88-4670.png

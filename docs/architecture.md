@@ -42,7 +42,14 @@ flowchart LR
   G --> LLM
 ```
 
-## 2. 边界原则
+## 2. AI Chat 与编排（控制平面 / 执行平面）
+
+- **决策摘要**：[ADR-004：AI Chat 控制平面与初版可演进](decisions/004-agent-backend-control-plane.md)。  
+- **接口与表名草案**：[`modules/ai-chat-orchestration.md`](modules/ai-chat-orchestration.md)（含 REST 草图、表清单、`LlmClient` / `TurnOrchestrator` 等边界）。  
+
+逻辑上：`API 与鉴权` → **编排（会话、profile、预处理、记忆）** → **执行（本期为薄 LLM 调用；以后可接 tool 循环）** → 持久化与审计。
+
+## 3. 边界原则
 
 | 层 | 职责 | 非职责（首版） |
 |----|------|----------------|
@@ -51,7 +58,7 @@ flowchart LR
 | AI 网关 | 统一模型调用、记录成本、脱敏/过滤、失败降级、路由多供应商 | 替代产品运营与法务策略 |
 | 数据层 | 持久化、缓存、文件 | 业务规则混写在 SQL 中（应适度收敛到服务层） |
 
-## 3. 与仓库目录的对应
+## 4. 与仓库目录的对应
 
 | 目录 | 对应 |
 |------|------|
@@ -60,7 +67,7 @@ flowchart LR
 | `clients/android`、`clients/ios` | **MVP** 可：WebView 薄壳，内嵌 H5；仅经 **HTTPS** 调 `backend` |
 | `clients/flutter` | **正式期** 双端主工程（MVP 后可建），经 API 访问 `backend` |
 
-## 4. 数据流（示例：心安指南）
+## 5. 数据流（示例：心安指南）
 
 1. 客户端提交问题 + 用户身份 token
 2. `backend` 校验身份与配额
@@ -68,9 +75,9 @@ flowchart LR
 4. 返回结构化或半结构化结果，落库与返回
 5. 记录调用日志（供成本与问题排查）
 
-TBD：实际 API 形态、表结构、是否流式，见 `docs/modules/` 与后续 ADR。
+**AI 对话主链**的 API/表名草案见 [`modules/ai-chat-orchestration.md`](modules/ai-chat-orchestration.md)；其它业务模块仍见 `docs/modules/` 与后续 ADR。
 
-## 5. 安全与合规（占位）
+## 6. 安全与合规（占位）
 
 - 传输：HTTPS
 - 鉴权：TBD（JWT、Session、设备绑定等，见 `docs/modules/auth.md` 待建）

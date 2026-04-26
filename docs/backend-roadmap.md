@@ -18,6 +18,7 @@
 
 - [ ] 用户与鉴权（TBD：手机号/短信/微信/Apple）
 - [ ] 用户资料 CRUD
+- [ ] **AI Chat 主链**（会话、消息、预处理、记忆、落库；接口/表名草案见 [`modules/ai-chat-orchestration.md`](modules/ai-chat-orchestration.md)，总原则见 [`decisions/004-agent-backend-control-plane.md`](decisions/004-agent-backend-control-plane.md)）
 - [ ] 今日运势/心安指南 的服务端 API（替代 demo 中直连或本地逻辑）
 - [ ] AI 网关：调用、日志、限流、降级
 - [ ] 收藏与历史（或服务端等价的持久化模型）

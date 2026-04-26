@@ -20,7 +20,7 @@
 | [`backend-roadmap.md`](backend-roadmap.md) | 后端从 MVP 到可商用的大致阶段（可随决策调整） |
 | [`deployment.md`](deployment.md) | 环境、部署、密钥与观测（随实际上线补全） |
 | [`decisions/`](decisions/) | 架构决策记录（ADR 风格） |
-| [`modules/`](modules/) | 按业务模块沉淀接口与表设计 |
+| [`modules/`](modules/) | 按业务模块沉淀接口与表设计（含 [`ai-chat-orchestration.md`](modules/ai-chat-orchestration.md)） |
 | [`tasks/`](tasks/) | 可接力的任务单与进度 |
 
 ## 子目录说明

@@ -1,6 +1,6 @@
 # 模块设计文档
 
-每个业务模块一个 Markdown 文件，命名小写短横线，例如 `auth.md`、`ai-gateway.md`。
+每个业务模块一个 Markdown 文件，命名小写短横线，例如 `auth.md`、`ai-gateway.md`、[`ai-chat-orchestration.md`](ai-chat-orchestration.md)（控制平面 + Chat 表/API 草案，见 ADR-004）。
 
 ## 何时创建
 

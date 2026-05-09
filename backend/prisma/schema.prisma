@@ -18,6 +18,23 @@ model User {
 
   conversations    Conversation[]
   llmInvocations   LlmInvocation[]
+  insightRounds    InsightRound[]
+}
+
+model InsightRound {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  userId        String
+  rawQuestion   String   @db.Text
+  questionsJson Json
+  answersJson   Json
+  conclusion    String   @db.Text
+  requestId     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([requestId])
 }
 
 model AgentProfile {

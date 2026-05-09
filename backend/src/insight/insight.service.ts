@@ -79,10 +79,11 @@ export class InsightService {
     context: InsightRequestContext,
   ): Promise<{ questions: InsightQuestion[] }> {
     const startedAt = Date.now();
-    const userId = await this.ensureUserId(context.deviceId);
+    let userId = 'unknown';
 
     try {
       const rawQuestion = normalizeAndValidateRawQuestion(dto, context.requestId);
+      userId = await this.ensureUserId(context.deviceId);
       const completion = await this.llm.completeChat({
         system: QUESTIONS_SYSTEM_PROMPT,
         user: buildQuestionsUserPrompt(rawQuestion),
@@ -117,11 +118,12 @@ export class InsightService {
     context: InsightRequestContext,
   ): Promise<{ conclusion: string }> {
     const startedAt = Date.now();
-    const userId = await this.ensureUserId(context.deviceId);
+    let userId = 'unknown';
 
     try {
       const rawQuestion = normalizeAndValidateRawQuestion(dto, context.requestId);
       this.assertAnswerShape(dto.questions, dto.answers);
+      userId = await this.ensureUserId(context.deviceId);
 
       const completion = await this.llm.completeChat({
         system: CONCLUSION_SYSTEM_PROMPT,

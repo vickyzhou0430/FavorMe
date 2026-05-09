@@ -24,8 +24,13 @@
 **Plans:** TBD（见 `/gsd-plan-phase 1`）
 
 Plans:
+**Wave 1**
 - [ ] 01-01: 定义/实现 DTO 与路由（提问、提交作答、错误码）
+
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 01-02: 接入 AI 网关或 LlmClient，实现三问 + 结论 prompt 与 JSON 解析
+
+**Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 01-03: 输入校验、日志与 request id
 
 ### Phase 2: Android 对话与选题 UI

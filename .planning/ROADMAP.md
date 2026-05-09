@@ -6,7 +6,7 @@
 
 ## Phases
 
-- [x] **Phase 1: 后端三问与结论 API** — HTTP 契约、LLM 调用、输入校验、结构化三问与结论
+- [ ] **Phase 1: 后端三问与结论 API** — HTTP 契约、LLM 调用、输入校验、结构化三问与结论（verification gaps found）
 - [ ] **Phase 2: Android 对话与选题 UI** — 最小聊天壳、展示三问、提交选项、展示结论
 - [ ] **Phase 3: E2E 与质量** — 真机联调、错误场景、抽检与日志
 
@@ -21,7 +21,7 @@
   1. 有效问题请求返回恰好 3 道题，每题含多个可选项，且含维度/标签可映射到三问框架
   2. 无效输入返回 4xx 与明确错误体，不返回编造的三问
   3. 提交完整作答后返回倾向结论文本，且表述符合非医疗、非命令式产品红线
-**Plans:** 3（3/3 complete；`01-01`…`01-03` 见 `.planning/phases/01-api/*-PLAN.md`）
+**Plans:** 3（3/3 complete；verification gaps found in `01-VERIFICATION.md`）
 
 Plans:
 **Wave 1**

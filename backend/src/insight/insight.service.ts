@@ -21,6 +21,7 @@ import {
   QUESTION_DIMENSIONS,
   QUESTIONS_SYSTEM_PROMPT,
 } from './prompts/questions.prompt';
+import { normalizeAndValidateRawQuestion } from './validators/question-input.validator';
 
 export interface InsightQuestion {
   id: string;
@@ -28,8 +29,6 @@ export interface InsightQuestion {
   title: string;
   options: Array<{ id: string; label: string }>;
 }
-
-const MAX_RAW_QUESTION_CHARS = 2000;
 
 const questionOptionSchema = z.object({
   id: z.string().min(1),
@@ -62,8 +61,9 @@ export class InsightService {
 
   async generateQuestions(
     dto: GenerateQuestionsDto,
+    requestId?: string,
   ): Promise<{ questions: InsightQuestion[] }> {
-    const rawQuestion = this.normalizeRawQuestion(dto);
+    const rawQuestion = normalizeAndValidateRawQuestion(dto, requestId);
     const completion = await this.llm.completeChat({
       system: QUESTIONS_SYSTEM_PROMPT,
       user: buildQuestionsUserPrompt(rawQuestion),
@@ -73,8 +73,11 @@ export class InsightService {
     return this.parseQuestions(completion.text);
   }
 
-  async submitInsight(dto: SubmitInsightDto): Promise<{ conclusion: string }> {
-    const rawQuestion = this.normalizeRawQuestion(dto);
+  async submitInsight(
+    dto: SubmitInsightDto,
+    requestId?: string,
+  ): Promise<{ conclusion: string }> {
+    const rawQuestion = normalizeAndValidateRawQuestion(dto, requestId);
     this.assertAnswerShape(dto.questions, dto.answers);
 
     const completion = await this.llm.completeChat({
@@ -95,23 +98,6 @@ export class InsightService {
     }
 
     return { conclusion };
-  }
-
-  private normalizeRawQuestion(dto: {
-    rawQuestion?: string;
-    raw_question?: string;
-  }): string {
-    const rawQuestion = (dto.rawQuestion ?? dto.raw_question ?? '')
-      .trim()
-      .slice(0, MAX_RAW_QUESTION_CHARS);
-    if (!rawQuestion) {
-      throw new UnprocessableEntityException({
-        code: 'INVALID_QUESTION_INPUT',
-        message: 'rawQuestion is required',
-      });
-    }
-
-    return rawQuestion;
   }
 
   private parseQuestions(text: string): { questions: InsightQuestion[] } {

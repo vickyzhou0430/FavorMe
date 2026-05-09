@@ -57,6 +57,8 @@ curl -s -X POST http://127.0.0.1:3000/v1/insight/submit \
   -d '{"rawQuestion":"我要不要换工作？","questions":[{"id":"q1","dimension":"inner_preference","title":"如果只听真实直觉，你更靠近哪边？","options":[{"id":"stay","label":"保持现状"},{"id":"change","label":"尝试变化"}]}],"answers":[{"questionId":"q1","optionId":"change"}]}'
 ```
 
+`rawQuestion`（兼容 `raw_question`）会在进入 LLM 前校验：去除首尾空白后需为 4–2000 个字符，并包含可读文本与基本疑问/决策语义。无效或噪声输入返回 422，错误码固定为 `INVALID_QUESTION_INPUT`，不会调用 LLM。
+
 ## 本地开发（用 Docker Compose）
 
 1. 在**仓库根**启动数据库与缓存：

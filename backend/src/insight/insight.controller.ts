@@ -15,11 +15,17 @@ export class InsightController {
     @Body() body: GenerateQuestionsDto,
     @Req() request: RequestWithContext,
   ) {
-    return this.insight.generateQuestions(body, getRequestId(request));
+    return this.insight.generateQuestions(body, {
+      requestId: getRequestId(request),
+      deviceId: request.deviceId,
+    });
   }
 
   @Post('submit')
   submitInsight(@Body() body: SubmitInsightDto, @Req() request: RequestWithContext) {
-    return this.insight.submitInsight(body, getRequestId(request));
+    return this.insight.submitInsight(body, {
+      requestId: getRequestId(request),
+      deviceId: request.deviceId,
+    });
   }
 }

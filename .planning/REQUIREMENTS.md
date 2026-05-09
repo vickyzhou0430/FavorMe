@@ -17,7 +17,7 @@
 
 - [x] **API-01**: 提供接收「用户原始问题」的接口（含鉴权占位或开发用固定 token，需文档说明）
 - [x] **API-02**: 提供接收「三问作答（每题所选选项 id）」的接口并返回结论
-- [ ] **API-03**: 对无效/非问题类输入返回 **4xx** 与可读错误信息，不强行生成三问
+- [x] **API-03**: 对无效/非问题类输入返回 **4xx** 与可读错误信息，不强行生成三问
 
 ### AI & Orchestration
 
@@ -28,7 +28,7 @@
 ### Quality & Observability
 
 - [ ] **QAS-01**: 单次端到端流程可在测试环境手动跑通（问题 → 三问 → 作答 → 结论）
-- [ ] **QAS-02**: 关键请求具备 request id 或等价关联 id，便于后端日志排查
+- [x] **QAS-02**: 关键请求具备 request id 或等价关联 id，便于后端日志排查
 
 ## v2 Requirements
 
@@ -57,7 +57,7 @@
 |-------------|-------|--------|
 | API-01 | Phase 1 | Complete in 01-01 |
 | API-02 | Phase 1 | Complete in 01-01 |
-| API-03 | Phase 1 | Pending |
+| API-03 | Phase 1 | Complete in 01-03 |
 | AI-01 | Phase 1 | Complete in 01-02 |
 | AI-02 | Phase 1 | Complete in 01-02 |
 | AI-03 | Phase 1 | Complete in 01-02 |
@@ -67,7 +67,7 @@
 | CLI-04 | Phase 2 | Pending |
 | CLI-05 | Phase 2 | Pending |
 | QAS-01 | Phase 3 | Pending |
-| QAS-02 | Phase 1 | Pending |
+| QAS-02 | Phase 1 | Complete in 01-03 |
 
 **Coverage:**
 - v1 requirements: 12 total

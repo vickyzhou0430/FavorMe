@@ -1,17 +1,19 @@
-# 模块：AI Chat 编排（控制平面 + 执行占位）
+# 模块：AI 心理洞察三问编排（控制平面 + 执行占位）
 
-> **状态**：草案，随实现与 ADR-004 更新。与 [`docs/decisions/004-agent-backend-control-plane.md`](../decisions/004-agent-backend-control-plane.md) 一致。  
+> **状态**：草案，已按 2026-05-09 会议纪要更新，随实现与 ADR-004 持续演进。  
 > 鉴权与用户表的**权威细节**以后续 [`auth.md`](auth.md) 为准；本文列出 chat 主链路的**表名与接口**以便联调。
 
 ## 目标
 
-- 提供 **端云聊天**、**登录/鉴权**、**进模型前预处理**、**记忆**、**会话**、**持久化** 的最小闭环。  
-- 控制平面与执行平面边界清晰，**后续**可接 tool loop、subagent、多 provider 路由，而不推翻 `conversation` / `message` 主模型。  
+- 提供「**用户提问 -> 可选补充背景 -> 生成三问 -> 用户作答 -> 输出倾向**」的最小闭环。  
+- 三问必须服务心理洞察：不是替用户做决定，而是帮助用户识别内在 `51%` 倾向。  
+- 控制平面与执行平面边界清晰，后续可升级为多轮 chat / tools / 多 provider，但不破坏 MVP 三问链路。  
 
 ## 非目标（本阶段不做）
 
-- 内层 model-tool 多轮循环、subagent 调度、独立意图分类服务、多 LLM 智能路由。  
-- 生产级 RAG/向量库（可预留表或 JSON 字段，首版不依赖）。  
+- 长对话陪聊型 Agent、内层 model-tool 多轮循环、subagent 调度。  
+- 生产级 RAG/向量库（可预留字段，首版不依赖）。  
+- 复杂异常兜底对话；对明显无效输入直接拦截。  
 
 ## 依赖
 
@@ -21,14 +23,19 @@
 
 ## 数据模型（表 / 实体草案）
 
-命名倾向 **Prisma 风格 snake_case 表名**；字段类型为示意，实作时以 `schema.prisma` 为准。
+命名倾向 **Prisma 风格**；**实现以** [`backend/prisma/schema.prisma`](../../backend/prisma/schema.prisma) 为准，迁移见 `backend/prisma/migrations/`。以下为概念对照，非与 SQL 表名一一强绑（Prisma 默认用 PascalCase 作表名时可后续 `@@map` 对齐 snake_case）。  
 
 | 表名 | 说明 |
 |------|------|
 | `users` | 用户主档（与 auth 定稿一致；本模块仅 FK 引用）。 |
 | `agent_profiles` | 可复用的 **Agent 配置**：默认模型、system 提示/模板版本、策略/安全 `policy_version`、是否默认等。MVP 通常一行 `default`。 |
 | `conversations` | 会话头：`user_id`、`agent_profile_id`、展示用 `title`、状态（active/archived）、时间戳。 |
-| `messages` | 单条消息：`conversation_id`、**role**（`user` \| `assistant` \| `system` 若需落库）、**content**（`text` 或 JSONB 多段）、`seq` 或 `created_at` 排序、**client_message_id**（幂等，见下）。 |
+| `questions` | 用户原始问题：`conversation_id`、`raw_question`、`normalized_question`、`input_mode`（text/voice_to_text）、有效性状态。 |
+| `question_backgrounds` | 可选背景补充：`question_id`、`background_text`、`is_skipped`。 |
+| `insight_question_sets` | 三问集合：`question_id`、`set_version`、`generation_mode`（generic/contextual）、三道题与选项 JSON。 |
+| `insight_answers` | 用户作答：`insight_question_set_id`、每题选项、交互轨迹（swipe/click）、耗时。 |
+| `insight_results` | 倾向结论：`question_id`、`tendency_label`、`confidence_band`、`brief_reasoning`、`is_member_full`。 |
+| `messages` | 若保留 chat 扩展，作为兼容层；MVP 可仅记录关键请求/响应摘要。 |
 | `conversation_memories` | 长期记忆载体（MVP 可用**滚动摘要 + 少量结构化 JSON**）：`conversation_id`、**summary**、**facts**（JSONB 可选）、`version`、`updated_at`。 |
 | `llm_invocations` | 审计与成本：**request_id**、外键到 `user_id` / `conversation_id` / 触发的 `message_id`（可空）、model、**prompt_tokens**、**completion_tokens**、**latency_ms**、错误码、**prompt_hash**（可存 hash 不存原文）。 |
 | `idempotency_keys` | （可选独立表，或与 `messages` 唯一约束二选一）记录 `Idempotency-Key` + 用户/路由 + 已创建资源 id，防弱网重放。 |
@@ -55,9 +62,11 @@
 | `GET` | `/v1/conversations` | 分页列表（可选 `cursor` / `limit`）。 |
 | `POST` | `/v1/conversations` | 创建会话；body 可含 `agent_profile_id`（缺省用默认 profile）、`title`（可空）。 |
 | `GET` | `/v1/conversations/{id}` | 会话详情。 |
-| `GET` | `/v1/conversations/{id}/messages` | 历史消息分页（`before_seq` 或 `before` 时间游标）。 |
-| `POST` | `/v1/conversations/{id}/messages` | 用户发一条；**必须**带 `client_message_id`（UUID v4）或头 `Idempotency-Key` 二选一封顶；响应含 assistant 一条（非流式）或 `202 + job`（若未来异步，本期可不实现）。 |
-| `GET` | `/v1/conversations/{id}/stream` 或 `POST .../completions` | **流式**（SSE）：首版可后上，但路径与 `Accept: text/event-stream` 宜提前约定。 |
+| `POST` | `/v1/conversations/{id}/questions` | 提交问题（text/voice_to_text）；无效输入返回 422。 |
+| `POST` | `/v1/questions/{questionId}/background` | 提交补充背景（可选）。 |
+| `POST` | `/v1/questions/{questionId}/generate-insight-questions` | 生成三问（带选项）；按有无背景决定 `contextual` 或 `generic`。 |
+| `POST` | `/v1/insight-question-sets/{id}/answers` | 提交三问作答（swipe/click）。 |
+| `GET` | `/v1/questions/{questionId}/result` | 获取倾向结论；可根据权益返回基础版或完整版。 |
 
 **统一响应建议**
 
@@ -178,7 +187,8 @@ interface ModelProviderResolver {
 
 ## 错误与边界
 
-- **幂等**：`client_message_id` 或 `Idempotency-Key` 重复时返回**同一**已创建 user/assistant 对或 409 + 已存在资源指针（实现选一种并写清）。  
+- **幂等**：`client_message_id` 或 `Idempotency-Key` 重复提交时返回同一资源。  
+- **无效输入**：非问题句或低信息噪声输入直接 `422`，不强行生成三问。  
 - **超长输入**：在预处理中硬截断或 `413`，并打审计日志。  
 - **限流**：HTTP 429 + 统一 `error` body。  
 
@@ -190,8 +200,8 @@ interface ModelProviderResolver {
 ## 待决问题
 
 - 登录方式（短信/微信/Apple）对 API 与 `users` 表字段的影响。  
-- 流式 SSE 是否在 MVP 与 WebView/Flutter 同步排期。  
-- `conversation_memories` 的摘要是否异步队列（BullMQ 等）在首版引入。  
+- 三问问题分类体系（无差别小事 / 人生大事 / 人际关系 / 其他）的枚举与提示词约束。  
+- 倾向结论的权益分层（免费摘要 vs 会员完整解析）在 MVP 是否启用。  
 
 ## 变更记录
 

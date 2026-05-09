@@ -2,6 +2,8 @@
 
 本目录是 FavorMe 项目的**长期记忆**：产品范围、架构、技术栈、部署与任务拆解以文件为准，不依赖单条聊天会话。
 
+> 当前产品主线（2026-05-09）：**AI 心理洞察助手**，核心链路为「用户提问 -> 生成三问 -> 用户作答 -> 倾向输出」。
+
 ## 必读顺序（新成员 / 新会话）
 
 1. [`team-workflow.md`](team-workflow.md) — **产品 / 设计 / 开发**分工、**PRD 与 Figma 固定位置**、与 `demo` 同步规则（**强烈建议全员先读**）
@@ -20,8 +22,8 @@
 | [`backend-roadmap.md`](backend-roadmap.md) | 后端从 MVP 到可商用的大致阶段（可随决策调整） |
 | [`deployment.md`](deployment.md) | 环境、部署、密钥与观测（随实际上线补全） |
 | [`decisions/`](decisions/) | 架构决策记录（ADR 风格） |
-| [`modules/`](modules/) | 按业务模块沉淀接口与表设计（含 [`ai-chat-orchestration.md`](modules/ai-chat-orchestration.md)） |
-| [`tasks/`](tasks/) | 可接力的任务单与进度 |
+| [`modules/`](modules/) | 按业务模块沉淀接口与表设计（含心理洞察三问主链路 [`ai-chat-orchestration.md`](modules/ai-chat-orchestration.md)） |
+| [`tasks/`](tasks/) | 可接力的任务单与进度（如 [`001-backend-initialization.md`](tasks/001-backend-initialization.md)） |
 
 ## 子目录说明
 

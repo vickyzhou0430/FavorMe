@@ -10,7 +10,7 @@
 ## 单仓布局
 
 - `demo/web`：演示与 H5 资产；MVP 可内嵌于 **WebView 薄壳**；**长期** 由 `clients/flutter` 逐步接棒核心体验（见 `docs/tech-stack.md`）。
-- `backend`：正式业务与 AI 网关、用户数据、订单等，**为商用主路径**。
+- `backend`：正式业务与 AI 网关、用户数据、订单等，**为商用主路径**（**NestJS 空壳**已建，见 `backend/README.md` 与 `docs/tasks/001-backend-initialization.md`）。
 - `clients/android`、`clients/ios`：MVP 阶段可放 **WebView 薄壳**；**正式期** 主工程在 `clients/flutter`（Flutter 双端）。
 
 ## 设计原则

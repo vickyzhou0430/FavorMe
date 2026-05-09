@@ -1,0 +1,113 @@
+// FavorMe — Chat / agent control-plane persistence (see docs/modules/ai-chat-orchestration.md)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  /// 登录方式未定稿前可空；接 auth 时收紧
+  email     String?  @unique
+  deviceId  String?  @unique
+
+  conversations    Conversation[]
+  llmInvocations   LlmInvocation[]
+}
+
+model AgentProfile {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  name          String   @unique
+  defaultModel  String
+  systemPrompt  String?  @db.Text
+  policyVersion String   @default("1")
+  promptVersion String   @default("1")
+  isDefault     Boolean  @default(false)
+
+  conversations Conversation[]
+}
+
+model Conversation {
+  id             String             @id @default(cuid())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  userId         String
+  agentProfileId String
+  title          String?
+  status         ConversationStatus @default(ACTIVE)
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentProfile  AgentProfile @relation(fields: [agentProfileId], references: [id], onDelete: Restrict)
+  messages      Message[]
+  memory        ConversationMemory?
+  llmInvocations LlmInvocation[]
+
+  @@index([userId])
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model Message {
+  id              String      @id @default(cuid())
+  createdAt       DateTime    @default(now())
+  conversationId  String
+  role            MessageRole
+  content         String      @db.Text
+  seq             Int
+  clientMessageId String
+  /// 关联到本轮 assistant 补全的审计行（可空，如仅落 user 时）
+  llmInvocations  LlmInvocation[]
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, clientMessageId])
+  @@index([conversationId, seq])
+}
+
+enum MessageRole {
+  user
+  assistant
+  system
+}
+
+model ConversationMemory {
+  id             String   @id @default(cuid())
+  updatedAt      DateTime @updatedAt
+  conversationId String   @unique
+  summary        String?  @db.Text
+  facts          Json?
+  version        Int      @default(1)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model LlmInvocation {
+  id                 String  @id @default(cuid())
+  createdAt          DateTime @default(now())
+  requestId          String  @unique
+  userId             String
+  conversationId     String
+  /// 若本次调用对应已落库的 assistant 消息
+  messageId          String?
+  model              String
+  promptTokens       Int?
+  completionTokens   Int?
+  latencyMs          Int?
+  errorCode          String?
+  /// 可存 hash，不存原文
+  promptHash         String?
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message      Message?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+}

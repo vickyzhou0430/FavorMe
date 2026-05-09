@@ -1,10 +1,22 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import {
+  BadGatewayException,
+  Injectable,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { z } from 'zod';
+import { LlmService } from '../llm/llm.service';
 import { GenerateQuestionsDto } from './dto/generate-questions.dto';
 import {
   InsightDimension,
+  INSIGHT_DIMENSIONS,
   QuestionSnapshotDto,
 } from './dto/question.dto';
 import { SubmitInsightDto } from './dto/submit-insight.dto';
+import {
+  buildQuestionsUserPrompt,
+  QUESTION_DIMENSIONS,
+  QUESTIONS_SYSTEM_PROMPT,
+} from './prompts/questions.prompt';
 
 export interface InsightQuestion {
   id: string;
@@ -13,42 +25,48 @@ export interface InsightQuestion {
   options: Array<{ id: string; label: string }>;
 }
 
+const MAX_RAW_QUESTION_CHARS = 2000;
+
+const questionOptionSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+});
+
+const insightQuestionSchema = z.object({
+  id: z.string().min(1),
+  dimension: z.enum(INSIGHT_DIMENSIONS),
+  title: z.string().min(1),
+  options: z.array(questionOptionSchema).min(2).max(4),
+});
+
+const questionsResponseSchema = z.object({
+  questions: z
+    .array(insightQuestionSchema)
+    .length(3)
+    .refine(
+      (questions) =>
+        questions.every(
+          (question, index) => question.dimension === QUESTION_DIMENSIONS[index],
+        ),
+      'questions must use the required dimensions in order',
+    ),
+});
+
 @Injectable()
 export class InsightService {
-  generateQuestions(dto: GenerateQuestionsDto): { questions: InsightQuestion[] } {
-    this.normalizeRawQuestion(dto);
+  constructor(private readonly llm: LlmService) {}
 
-    return {
-      questions: [
-        {
-          id: 'q1',
-          dimension: 'inner_preference',
-          title: '如果暂时不考虑别人期待，你更希望事情走向哪一边？',
-          options: [
-            { id: 'stay_close', label: '保持现在的节奏' },
-            { id: 'move_forward', label: '尝试往前推进' },
-          ],
-        },
-        {
-          id: 'q2',
-          dimension: 'fear_boundary',
-          title: '想到最坏情况时，哪一种更让你难以接受？',
-          options: [
-            { id: 'regret_inaction', label: '因为没试而后悔' },
-            { id: 'regret_cost', label: '投入后发现不值得' },
-          ],
-        },
-        {
-          id: 'q3',
-          dimension: 'active_vs_avoidance',
-          title: '你现在更像是在靠近想要的，还是远离不舒服的？',
-          options: [
-            { id: 'active_choice', label: '靠近真正想要的体验' },
-            { id: 'avoidance_choice', label: '想尽快摆脱当前压力' },
-          ],
-        },
-      ],
-    };
+  async generateQuestions(
+    dto: GenerateQuestionsDto,
+  ): Promise<{ questions: InsightQuestion[] }> {
+    const rawQuestion = this.normalizeRawQuestion(dto);
+    const completion = await this.llm.completeChat({
+      system: QUESTIONS_SYSTEM_PROMPT,
+      user: buildQuestionsUserPrompt(rawQuestion),
+      temperature: 0.3,
+    });
+
+    return this.parseQuestions(completion.text);
   }
 
   submitInsight(dto: SubmitInsightDto): { conclusion: string } {
@@ -65,7 +83,9 @@ export class InsightService {
     rawQuestion?: string;
     raw_question?: string;
   }): string {
-    const rawQuestion = (dto.rawQuestion ?? dto.raw_question ?? '').trim();
+    const rawQuestion = (dto.rawQuestion ?? dto.raw_question ?? '')
+      .trim()
+      .slice(0, MAX_RAW_QUESTION_CHARS);
     if (!rawQuestion) {
       throw new UnprocessableEntityException({
         code: 'INVALID_QUESTION_INPUT',
@@ -74,6 +94,31 @@ export class InsightService {
     }
 
     return rawQuestion;
+  }
+
+  private parseQuestions(text: string): { questions: InsightQuestion[] } {
+    const parsedJson = this.parseJsonObject(text);
+    const result = questionsResponseSchema.safeParse(parsedJson);
+    if (!result.success) {
+      throw new BadGatewayException({
+        code: 'LLM_OUTPUT_INVALID',
+        message: 'LLM question output did not match the required schema',
+      });
+    }
+
+    return result.data;
+  }
+
+  private parseJsonObject(text: string): unknown {
+    const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+    try {
+      return JSON.parse(cleaned);
+    } catch {
+      throw new BadGatewayException({
+        code: 'LLM_OUTPUT_INVALID',
+        message: 'LLM question output was not valid JSON',
+      });
+    }
   }
 
   private assertAnswerShape(

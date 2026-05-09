@@ -13,6 +13,10 @@ import {
 } from './dto/question.dto';
 import { SubmitInsightDto } from './dto/submit-insight.dto';
 import {
+  buildConclusionUserPrompt,
+  CONCLUSION_SYSTEM_PROMPT,
+} from './prompts/conclusion.prompt';
+import {
   buildQuestionsUserPrompt,
   QUESTION_DIMENSIONS,
   QUESTIONS_SYSTEM_PROMPT,
@@ -69,14 +73,28 @@ export class InsightService {
     return this.parseQuestions(completion.text);
   }
 
-  submitInsight(dto: SubmitInsightDto): { conclusion: string } {
-    this.normalizeRawQuestion(dto);
+  async submitInsight(dto: SubmitInsightDto): Promise<{ conclusion: string }> {
+    const rawQuestion = this.normalizeRawQuestion(dto);
     this.assertAnswerShape(dto.questions, dto.answers);
 
-    return {
-      conclusion:
-        '从这次选择看，你可能略微更靠近主动尝试的一侧。这个结论只是帮助你看见当下倾向，不替你做最终决定。',
-    };
+    const completion = await this.llm.completeChat({
+      system: CONCLUSION_SYSTEM_PROMPT,
+      user: buildConclusionUserPrompt({
+        rawQuestion,
+        questions: dto.questions,
+        answers: dto.answers,
+      }),
+      temperature: 0.5,
+    });
+    const conclusion = completion.text.trim();
+    if (!conclusion) {
+      throw new BadGatewayException({
+        code: 'LLM_OUTPUT_INVALID',
+        message: 'LLM conclusion output was empty',
+      });
+    }
+
+    return { conclusion };
   }
 
   private normalizeRawQuestion(dto: {

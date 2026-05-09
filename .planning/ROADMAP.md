@@ -21,14 +21,14 @@
   1. 有效问题请求返回恰好 3 道题，每题含多个可选项，且含维度/标签可映射到三问框架
   2. 无效输入返回 4xx 与明确错误体，不返回编造的三问
   3. 提交完整作答后返回倾向结论文本，且表述符合非医疗、非命令式产品红线
-**Plans:** 3（1/3 complete；`01-01`…`01-03` 见 `.planning/phases/01-api/*-PLAN.md`）
+**Plans:** 3（2/3 complete；`01-01`…`01-03` 见 `.planning/phases/01-api/*-PLAN.md`）
 
 Plans:
 **Wave 1**
 - [x] 01-01: 定义/实现 DTO 与路由（提问、提交作答、错误码） — Summary: `.planning/phases/01-api/01-01-SUMMARY.md`
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 01-02: 接入 AI 网关或 LlmClient，实现三问 + 结论 prompt 与 JSON 解析
+- [x] 01-02: 接入 AI 网关或 LlmClient，实现三问 + 结论 prompt 与 JSON 解析 — Summary: `.planning/phases/01-api/01-02-SUMMARY.md`
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 01-03: 输入校验、日志与 request id

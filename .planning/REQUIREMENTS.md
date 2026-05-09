@@ -21,9 +21,9 @@
 
 ### AI & Orchestration
 
-- [ ] **AI-01**: 后端调用大模型，按 `docs/tasks/002-ai-insight-question-generation.md` 的框架生成 **恰好三道** 带选项的题目
-- [ ] **AI-02**: 三问在语义上分别对应：**剥离外界干扰**、**直面恐惧底线**、**区分主动与逃避**（可在响应中携带维度字段便于校验）
-- [ ] **AI-03**: 根据用户选项生成 **倾向性结论** 文本（禁止医疗诊断与替用户下命令式断言）
+- [x] **AI-01**: 后端调用大模型，按 `docs/tasks/002-ai-insight-question-generation.md` 的框架生成 **恰好三道** 带选项的题目
+- [x] **AI-02**: 三问在语义上分别对应：**剥离外界干扰**、**直面恐惧底线**、**区分主动与逃避**（可在响应中携带维度字段便于校验）
+- [x] **AI-03**: 根据用户选项生成 **倾向性结论** 文本（禁止医疗诊断与替用户下命令式断言）
 
 ### Quality & Observability
 
@@ -58,9 +58,9 @@
 | API-01 | Phase 1 | Complete in 01-01 |
 | API-02 | Phase 1 | Complete in 01-01 |
 | API-03 | Phase 1 | Pending |
-| AI-01 | Phase 1 | Pending |
-| AI-02 | Phase 1 | Pending |
-| AI-03 | Phase 1 | Pending |
+| AI-01 | Phase 1 | Complete in 01-02 |
+| AI-02 | Phase 1 | Complete in 01-02 |
+| AI-03 | Phase 1 | Complete in 01-02 |
 | CLI-01 | Phase 2 | Pending |
 | CLI-02 | Phase 2 | Pending |
 | CLI-03 | Phase 2 | Pending |

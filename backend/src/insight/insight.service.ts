@@ -204,18 +204,66 @@ export class InsightService {
     questions: QuestionSnapshotDto[],
     answers: Array<{ questionId: string; optionId: string }>,
   ): void {
-    const questionById = new Map(questions.map((question) => [question.id, question]));
+    const invalid = () =>
+      new UnprocessableEntityException({
+        code: 'INVALID_INSIGHT_ANSWER',
+        message: 'answers must contain exactly one valid answer for each generated question',
+      });
+
+    if (
+      questions.length !== QUESTION_DIMENSIONS.length ||
+      answers.length !== QUESTION_DIMENSIONS.length ||
+      !questions.every(
+        (question, index) => question.dimension === QUESTION_DIMENSIONS[index],
+      )
+    ) {
+      throw invalid();
+    }
+
+    const questionIds = new Set<string>();
+    const questionById = new Map<string, QuestionSnapshotDto>();
+    for (const question of questions) {
+      if (questionIds.has(question.id)) {
+        throw invalid();
+      }
+
+      if (question.options.length < 2 || question.options.length > 4) {
+        throw invalid();
+      }
+
+      const optionIds = new Set<string>();
+      for (const option of question.options) {
+        if (optionIds.has(option.id)) {
+          throw invalid();
+        }
+        optionIds.add(option.id);
+      }
+
+      questionIds.add(question.id);
+      questionById.set(question.id, question);
+    }
+
+    const answeredQuestionIds = new Set<string>();
     for (const answer of answers) {
+      if (answeredQuestionIds.has(answer.questionId)) {
+        throw invalid();
+      }
+
       const question = questionById.get(answer.questionId);
       const optionExists = question?.options.some(
         (option) => option.id === answer.optionId,
       );
 
       if (!question || !optionExists) {
-        throw new UnprocessableEntityException({
-          code: 'INVALID_INSIGHT_ANSWER',
-          message: 'answers must reference provided questions and options',
-        });
+        throw invalid();
+      }
+
+      answeredQuestionIds.add(answer.questionId);
+    }
+
+    for (const questionId of questionIds) {
+      if (!answeredQuestionIds.has(questionId)) {
+        throw invalid();
       }
     }
   }

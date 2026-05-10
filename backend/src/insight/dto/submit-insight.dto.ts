@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   ArrayMinSize,
   IsArray,
   IsOptional,
@@ -26,13 +27,15 @@ export class SubmitInsightDto {
   raw_question?: string;
 
   @IsArray()
-  @ArrayMinSize(1)
+  @ArrayMinSize(3)
+  @ArrayMaxSize(3)
   @ValidateNested({ each: true })
   @Type(() => QuestionSnapshotDto)
   questions!: QuestionSnapshotDto[];
 
   @IsArray()
-  @ArrayMinSize(1)
+  @ArrayMinSize(3)
+  @ArrayMaxSize(3)
   @ValidateNested({ each: true })
   @Type(() => InsightAnswerDto)
   answers!: InsightAnswerDto[];

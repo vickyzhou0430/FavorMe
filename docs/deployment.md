@@ -18,6 +18,18 @@ TBD：是否首版就三环境，或先 `dev` + `prod`。
 - `backend`：数据库 URL、Redis、对象存储、模型 API Key、短信/登录等，分环境配置。
 - 旋转策略与负责人：TBD。
 
+### 后端 LLM：火山方舟 / Doubao
+
+当前 MVP 后端按 OpenAI-compatible `chat/completions` 协议调用模型；火山引擎方舟可直接通过环境变量适配：
+
+```env
+AI_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+AI_API_KEY=<ARK_API_KEY 注入值>
+AI_MODEL=doubao-seed-1-8-251228
+```
+
+部署平台中可把火山官网示例里的 `ARK_API_KEY` 作为密钥注入到后端统一变量 `AI_API_KEY`。客户端与镜像层不得包含该 Key。
+
 ## 3. 可观测性（目标）
 
 - 应用日志：结构化，可检索

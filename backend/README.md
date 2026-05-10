@@ -95,6 +95,18 @@ curl -s -X POST http://127.0.0.1:3000/v1/insight/submit \
 
 `rawQuestion`（兼容 `raw_question`）会在进入 LLM 前校验：去除首尾空白后需为 4–2000 个字符，并包含可读文本与基本疑问/决策语义。无效或噪声输入返回 422，错误码固定为 `INVALID_QUESTION_INPUT`，不会调用 LLM。
 
+## LLM 配置：火山方舟 / Doubao
+
+后端的 `LlmService` 使用 OpenAI-compatible `chat/completions` 协议。当前 MVP 使用火山引擎方舟时，不需要改代码，只要在 `backend/.env` 中配置：
+
+```env
+AI_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+AI_API_KEY=<你的 ARK_API_KEY>
+AI_MODEL=doubao-seed-1-8-251228
+```
+
+代码会请求 `${AI_BASE_URL}/chat/completions`，也就是方舟的 `https://ark.cn-beijing.volces.com/api/v3/chat/completions`。官网示例里的 `ARK_API_KEY` 不要换成新的变量名，直接把值填到后端统一使用的 `AI_API_KEY` 即可。
+
 ## 本地开发（用 Docker Compose）
 
 1. 在**仓库根**启动数据库与缓存：

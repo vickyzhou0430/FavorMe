@@ -33,7 +33,8 @@ export class LlmService {
     const model = this.requiredEnv('AI_MODEL');
     const baseUrl = this.requiredEnv('AI_BASE_URL').replace(/\/+$/, '');
     // AI_BASE_URL should point at the OpenAI-compatible API root, for example
-    // https://api.openai.com/v1. Provider-specific prefixes belong in the env value.
+    // https://api.openai.com/v1 or Volcengine Ark https://ark.cn-beijing.volces.com/api/v3.
+    // Provider-specific prefixes belong in the env value.
     const url = `${baseUrl}/chat/completions`;
     const startedAt = Date.now();
 

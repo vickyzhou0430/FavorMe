@@ -32,7 +32,13 @@
 API_TOKEN=replace-with-local-dev-token
 ```
 
-Plan 01-02 接入 LLM 时继续使用同一 `.env` 中的 `AI_BASE_URL`、`AI_API_KEY`、`AI_MODEL`。
+Plan 01-02 接入 LLM 时继续使用同一 `.env` 中的 `AI_BASE_URL`、`AI_API_KEY`、`AI_MODEL`。当前 MVP 使用火山方舟 / Doubao 时：
+
+```env
+AI_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+AI_API_KEY=<你的 ARK_API_KEY>
+AI_MODEL=doubao-seed-1-8-251228
+```
 
 ## 最小调用顺序
 

@@ -43,6 +43,15 @@ class FakeQuestionsClient implements InsightQuestionsClient {
       ],
     );
   }
+
+  @override
+  Future<InsightSubmitResponse> submitInsight({
+    required String rawQuestion,
+    required List<InsightQuestion> questions,
+    required List<InsightAnswer> answers,
+  }) async {
+    return const InsightSubmitResponse(conclusion: '测试结论');
+  }
 }
 
 void main() {

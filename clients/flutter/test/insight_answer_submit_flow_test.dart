@@ -49,6 +49,7 @@ class FakeInsightClient implements InsightQuestionsClient {
     );
   }
 
+  @override
   Future<InsightSubmitResponse> submitInsight({
     required String rawQuestion,
     required List<InsightQuestion> questions,

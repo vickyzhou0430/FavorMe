@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
-import 'insight_models.dart';
 import 'insight_view_model.dart';
+import 'widgets/question_card.dart';
+import 'widgets/result_card.dart';
 
 class InsightFlowScreen extends StatefulWidget {
   const InsightFlowScreen({
@@ -51,7 +52,8 @@ class _InsightFlowScreenState extends State<InsightFlowScreen> {
                       const SizedBox(height: 24),
                       _BottomQuestionInput(
                         controller: _controller,
-                        enabled: !viewModel.isBusy,
+                        enabled: viewModel.state == InsightFlowState.idle ||
+                            viewModel.state == InsightFlowState.error,
                         onSubmitted: () {
                           viewModel.submitQuestion(_controller.text);
                         },
@@ -98,14 +100,37 @@ class _InsightFlowScreenState extends State<InsightFlowScreen> {
       case InsightFlowState.answeringQuestion:
         final question = viewModel.currentQuestion;
         return _FlowStack(
-          key: const ValueKey('question'),
+          key: ValueKey('question-${viewModel.currentQuestionIndex}'),
           rawQuestion: viewModel.rawQuestion,
           child: question == null
               ? const SizedBox.shrink()
-              : _QuestionCard(
+              : QuestionCard(
                   progressText: viewModel.progressText,
                   question: question,
+                  selectedOptionId: viewModel.selectedOptionIdFor(question),
+                  showPrevious: viewModel.currentQuestionIndex > 0,
+                  enabled: !viewModel.isBusy,
+                  onOptionSelected: (option) {
+                    viewModel.selectOption(question, option);
+                  },
+                  onPrevious: viewModel.goBack,
                 ),
+        );
+      case InsightFlowState.submittingAnswers:
+        return _FlowStack(
+          key: const ValueKey('submittingAnswers'),
+          rawQuestion: viewModel.rawQuestion,
+          child: const _LoadingConclusionCard(),
+        );
+      case InsightFlowState.showingResult:
+        return _FlowStack(
+          key: const ValueKey('result'),
+          rawQuestion: viewModel.rawQuestion,
+          child: ResultCard(
+            conclusion: viewModel.conclusion ?? '',
+            onAskAgain: () => viewModel.resetToIdle(),
+            onHome: () => viewModel.resetToIdle(),
+          ),
         );
       case InsightFlowState.error:
         return _FlowStack(
@@ -204,6 +229,49 @@ class _CardEntrance extends StatelessWidget {
   }
 }
 
+class _LoadingConclusionCard extends StatefulWidget {
+  const _LoadingConclusionCard();
+
+  @override
+  State<_LoadingConclusionCard> createState() => _LoadingConclusionCardState();
+}
+
+class _LoadingConclusionCardState extends State<_LoadingConclusionCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppMotion.loadingBreathDuration,
+      lowerBound: 0.72,
+      upperBound: 1,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SoftCard(
+      color: AppColors.loadingWash,
+      child: Semantics(
+        label: '正在生成倾向分析…',
+        child: FadeTransition(
+          opacity: _controller,
+          child: const Text('正在生成倾向分析…', style: AppTypography.action),
+        ),
+      ),
+    );
+  }
+}
+
 class _LoadingQuestionCard extends StatefulWidget {
   const _LoadingQuestionCard();
 
@@ -257,59 +325,6 @@ class _LoadingQuestionCardState extends State<_LoadingQuestionCard>
               Text('正在整理你的三问…', style: AppTypography.action),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuestionCard extends StatelessWidget {
-  const _QuestionCard({
-    required this.progressText,
-    required this.question,
-  });
-
-  final String progressText;
-  final InsightQuestion question;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SoftCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(progressText, style: AppTypography.caption),
-          const SizedBox(height: 12),
-          Text(question.title, style: AppTypography.action),
-          const SizedBox(height: 18),
-          for (final option in question.options) ...[
-            _OptionPill(label: option.label),
-            const SizedBox(height: 10),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _OptionPill extends StatelessWidget {
-  const _OptionPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: AppSizes.optionMinHeight),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border.all(color: AppColors.borderSoft),
-          borderRadius: BorderRadius.circular(AppRadii.optionPill),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Text(label, style: AppTypography.body),
         ),
       ),
     );

@@ -9,6 +9,8 @@ enum InsightFlowState {
   questionSubmitted,
   generatingQuestions,
   answeringQuestion,
+  submittingAnswers,
+  showingResult,
   error,
 }
 
@@ -22,17 +24,25 @@ class InsightViewModel extends ChangeNotifier {
   String _rawQuestion = '';
   String? _errorMessage;
   List<InsightQuestion> _questions = const [];
+  final Map<String, String> _selectedAnswers = {};
   int _currentQuestionIndex = 0;
   int _requestSeq = 0;
+  bool _submitInFlight = false;
+  String? _conclusion;
 
   InsightFlowState get state => _state;
   String get rawQuestion => _rawQuestion;
   String? get errorMessage => _errorMessage;
   List<InsightQuestion> get questions => _questions;
+  Map<String, String> get selectedAnswers => Map.unmodifiable(_selectedAnswers);
+  String? get conclusion => _conclusion;
   int get currentQuestionIndex => _currentQuestionIndex;
   bool get isBusy =>
       _state == InsightFlowState.questionSubmitted ||
-      _state == InsightFlowState.generatingQuestions;
+      _state == InsightFlowState.generatingQuestions ||
+      _state == InsightFlowState.submittingAnswers;
+  bool get submittingAnswers => _state == InsightFlowState.submittingAnswers;
+  bool get showingResult => _state == InsightFlowState.showingResult;
 
   InsightQuestion? get currentQuestion {
     if (_questions.isEmpty) {
@@ -42,6 +52,10 @@ class InsightViewModel extends ChangeNotifier {
   }
 
   String get progressText => '第 ${_currentQuestionIndex + 1} / 3 问';
+
+  String? selectedOptionIdFor(InsightQuestion question) {
+    return _selectedAnswers[question.id];
+  }
 
   Future<void> submitQuestion(String value) async {
     final trimmed = value.trim();
@@ -53,7 +67,10 @@ class InsightViewModel extends ChangeNotifier {
     _rawQuestion = trimmed;
     _errorMessage = null;
     _questions = const [];
+    _selectedAnswers.clear();
     _currentQuestionIndex = 0;
+    _submitInFlight = false;
+    _conclusion = null;
     _setState(InsightFlowState.questionSubmitted);
     _setState(InsightFlowState.generatingQuestions);
 
@@ -84,16 +101,106 @@ class InsightViewModel extends ChangeNotifier {
   }
 
   Future<void> retry() {
+    if (_selectedAnswers.length == _questions.length && _questions.isNotEmpty) {
+      return _submitAnswers();
+    }
     return submitQuestion(_rawQuestion);
   }
 
-  void resetToIdle() {
+  Future<void> selectOption(InsightQuestion question, InsightOption option) async {
+    if (isBusy || _state != InsightFlowState.answeringQuestion) {
+      return;
+    }
+
+    _selectedAnswers[question.id] = option.id;
+    notifyListeners();
+    await Future<void>.delayed(AppMotion.selectionDuration);
+
+    if (_state != InsightFlowState.answeringQuestion) {
+      return;
+    }
+
+    if (_currentQuestionIndex < _questions.length - 1) {
+      _currentQuestionIndex += 1;
+      notifyListeners();
+      return;
+    }
+
+    await _submitAnswers();
+  }
+
+  void goBack() {
+    if (isBusy || _state != InsightFlowState.answeringQuestion) {
+      return;
+    }
+    if (_currentQuestionIndex > 0) {
+      _currentQuestionIndex -= 1;
+      notifyListeners();
+      return;
+    }
+    resetToIdle(keepRawQuestion: true);
+  }
+
+  void resetToIdle({bool keepRawQuestion = false}) {
     _requestSeq++;
-    _rawQuestion = '';
+    if (!keepRawQuestion) {
+      _rawQuestion = '';
+    }
     _errorMessage = null;
     _questions = const [];
+    _selectedAnswers.clear();
     _currentQuestionIndex = 0;
+    _submitInFlight = false;
+    _conclusion = null;
     _setState(InsightFlowState.idle);
+  }
+
+  Future<void> _submitAnswers() async {
+    if (_submitInFlight || _questions.length != 3) {
+      return;
+    }
+
+    final answers = <InsightAnswer>[];
+    for (final question in _questions) {
+      final optionId = _selectedAnswers[question.id];
+      if (optionId == null) {
+        return;
+      }
+      answers.add(InsightAnswer(questionId: question.id, optionId: optionId));
+    }
+
+    final seq = ++_requestSeq;
+    _submitInFlight = true;
+    _errorMessage = null;
+    _setState(InsightFlowState.submittingAnswers);
+
+    try {
+      final response = await _questionsClient.submitInsight(
+        rawQuestion: _rawQuestion,
+        questions: _questions,
+        answers: answers,
+      );
+      if (seq != _requestSeq) {
+        return;
+      }
+      _conclusion = response.conclusion;
+      _submitInFlight = false;
+      _setState(InsightFlowState.showingResult);
+    } on InsightApiException catch (error) {
+      if (seq != _requestSeq) {
+        return;
+      }
+      _submitInFlight = false;
+      _errorMessage = _messageFor(error);
+      _setState(InsightFlowState.error);
+    } on Object {
+      if (seq != _requestSeq) {
+        return;
+      }
+      _submitInFlight = false;
+      _errorMessage = '刚刚没有连上服务。请检查网络后重试。';
+      _setState(InsightFlowState.error);
+    }
   }
 
   void _setState(InsightFlowState nextState) {

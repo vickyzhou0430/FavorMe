@@ -9,6 +9,12 @@ abstract interface class InsightQuestionsClient {
   Future<InsightQuestionsResponse> generateQuestions({
     required String rawQuestion,
   });
+
+  Future<InsightSubmitResponse> submitInsight({
+    required String rawQuestion,
+    required List<InsightQuestion> questions,
+    required List<InsightAnswer> answers,
+  });
 }
 
 class InsightApiException implements Exception {
@@ -46,29 +52,8 @@ class InsightApiClient implements InsightQuestionsClient {
   Future<InsightQuestionsResponse> generateQuestions({
     required String rawQuestion,
   }) async {
-    final token = apiToken.trim();
-    if (token.isEmpty) {
-      throw const InsightApiException(
-        code: 'CLIENT_CONFIG_MISSING',
-        message: 'API token is not configured.',
-      );
-    }
-
-    final deviceId = (await _deviceIdStore.readOrCreate()).trim();
-    if (deviceId.isEmpty) {
-      throw const InsightApiException(
-        code: 'DEVICE_ID_MISSING',
-        message: 'Device id is not available.',
-      );
-    }
-
-    final response = await _httpClient.post(
-      _endpoint('/v1/insight/questions'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'X-Device-Id': deviceId,
-        'Content-Type': 'application/json',
-      },
+    final response = await _postJson(
+      path: '/v1/insight/questions',
       body: jsonEncode({
         'rawQuestion': rawQuestion,
         'inputMode': 'text',
@@ -92,6 +77,71 @@ class InsightApiClient implements InsightQuestionsClient {
         message: error.message,
       );
     }
+  }
+
+  @override
+  Future<InsightSubmitResponse> submitInsight({
+    required String rawQuestion,
+    required List<InsightQuestion> questions,
+    required List<InsightAnswer> answers,
+  }) async {
+    final response = await _postJson(
+      path: '/v1/insight/submit',
+      body: jsonEncode({
+        'rawQuestion': rawQuestion,
+        'questions': questions.map((question) => question.toJson()).toList(),
+        'answers': answers.map((answer) => answer.toJson()).toList(),
+      }),
+    );
+
+    final decoded = _decodeObject(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw InsightApiException(
+        code: decoded['code'] as String?,
+        message: decoded['message'] as String? ?? 'Request failed.',
+        requestId: decoded['requestId'] as String?,
+      );
+    }
+
+    try {
+      return InsightSubmitResponse.fromJson(decoded);
+    } on FormatException catch (error) {
+      throw InsightApiException(
+        code: 'MALFORMED_SUBMIT_RESPONSE',
+        message: error.message,
+      );
+    }
+  }
+
+  Future<http.Response> _postJson({
+    required String path,
+    required String body,
+  }) async {
+    final token = apiToken.trim();
+    if (token.isEmpty) {
+      throw const InsightApiException(
+        code: 'CLIENT_CONFIG_MISSING',
+        message: 'API token is not configured.',
+      );
+    }
+
+    final deviceId = (await _deviceIdStore.readOrCreate()).trim();
+    if (deviceId.isEmpty) {
+      throw const InsightApiException(
+        code: 'DEVICE_ID_MISSING',
+        message: 'Device id is not available.',
+      );
+    }
+
+    return _httpClient.post(
+      _endpoint(path),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'X-Device-Id': deviceId,
+        'Content-Type': 'application/json',
+      },
+      body: body,
+    );
   }
 
   Uri _endpoint(String path) {

@@ -96,6 +96,23 @@ class InsightQuestion {
   }
 }
 
+class InsightAnswer {
+  const InsightAnswer({
+    required this.questionId,
+    required this.optionId,
+  });
+
+  final String questionId;
+  final String optionId;
+
+  Map<String, Object?> toJson() {
+    return {
+      'questionId': questionId,
+      'optionId': optionId,
+    };
+  }
+}
+
 class InsightQuestionsResponse {
   const InsightQuestionsResponse({required this.questions});
 
@@ -115,5 +132,19 @@ class InsightQuestionsResponse {
           )
           .toList(growable: false),
     );
+  }
+}
+
+class InsightSubmitResponse {
+  const InsightSubmitResponse({required this.conclusion});
+
+  final String conclusion;
+
+  factory InsightSubmitResponse.fromJson(Map<String, Object?> json) {
+    final conclusion = json['conclusion'];
+    if (conclusion is! String || conclusion.isEmpty) {
+      throw const FormatException('Submit response conclusion is required');
+    }
+    return InsightSubmitResponse(conclusion: conclusion);
   }
 }

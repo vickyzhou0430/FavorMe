@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-05-09T11:29:51Z"
+last_updated: "2026-05-10T02:16:23Z"
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 4
+  completed_plans: 4
   percent: 100
 ---
 
@@ -19,12 +19,12 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-05-09)
 
 **Core value:** 提问 → 三问带选项 → 选答 → 倾向结论（端到端可演示）  
-**Current focus:** Phase 01 — api verification gap closure
+**Current focus:** Phase 01 — api verification ready after gap closure
 
 ## Session
 
-- **Last command:** Verify Phase `01-api` — 发现 submit 三问作答完整性校验缺口，Phase 1 暂不标记完成
-- **Resume:** `.planning/phases/01-api/01-VERIFICATION.md`
+- **Last command:** Execute Plan `01-04` — 完成 submit 三问作答完整性校验缺口修复
+- **Resume:** `.planning/phases/01-api/01-04-SUMMARY.md`
 - **Codebase map:** `.planning/codebase/` 已生成
 - **Agents:** `gsd-sdk` 报告 `agents_installed: false` — 研究/路线图子代理可能需 `npx get-shit-done-cc@latest --global` 修复路径后重试；当前路线图由会话内直接撰写
 
@@ -38,11 +38,13 @@ See: `.planning/PROJECT.md` (updated 2026-05-09)
 - Plan 01-03 validates `rawQuestion` before any database lookup or LLM call, returning stable `INVALID_QUESTION_INPUT` for invalid input.
 - Successful submit persists exactly one completed `InsightRound`; questions-only requests do not persist in-flight round state.
 - Insight logs include requestId, route, userId, durationMs, and optional errorCode without logging raw question bodies.
+- Plan 01-04 preserves the no-session/no-cache design by validating client-provided submit snapshots against exactly three ordered `QUESTION_DIMENSIONS` before user upsert, LLM, or persistence.
+- All submit-shape failures now use stable HTTP 422 code `INVALID_INSIGHT_ANSWER`.
 
 ## Next Actions
 
-1. Run `/gsd-plan-phase 1 --gaps` to create a gap-closure plan for submit 三问作答完整性校验.
-2. After gap closure, re-run `/gsd-execute-phase 1 --gaps-only` and phase verification.
+1. Re-run Phase 01 verification to confirm the API-02 submit completeness gap is closed.
+2. If verification passes, advance toward Phase 2 Android API integration planning.
 
 ---
-*Last updated: 2026-05-09T11:34:00Z（Phase 01 verification gaps found）*
+*Last updated: 2026-05-10T02:16:23Z（Plan 01-04 gap closure complete）*

@@ -1,6 +1,6 @@
 # 系统架构（目标态）
 
-> 状态：**与实现同步演进**。当前试水阶段优先 **Android 原生 App**，聚焦「AI 心理洞察三问」主链路；`backend` 为商用主路径。详见 [`tech-stack.md`](tech-stack.md)。
+> 状态：**与实现同步演进**。当前 Phase 2 试水阶段采用 `clients/flutter` 的 **Flutter-first Android MVP**，聚焦「AI 心理洞察三问」主链路；`backend` 为商用主路径。详见 [`tech-stack.md`](tech-stack.md)。
 
 ## 1. 逻辑视图
 
@@ -64,9 +64,9 @@ flowchart LR
 |------|------|
 | `demo/web` | 产品/交互验证；可继续作为 H5 原型与实验场 |
 | `backend` | 业务 + AI 网关 + 管理接口（随选型落地） |
-| `clients/android` | **当前 MVP 主端**：原生实现登录、画像、提问、三问作答、结果反馈 |
+| `clients/android` | Android 平台说明入口；Phase 2 不在此目录承载 MVP 功能实现 |
 | `clients/ios` | 试水期暂不强制；验证后再并行推进 |
-| `clients/flutter` | 保持长期双端预留，是否启用取决于试水结果与资源 |
+| `clients/flutter` | **当前 Phase 2 Android MVP 实现**：Flutter-first 单屏三问流程、API 联调与后续 iOS 可复用结构 |
 
 ## 5. 数据流（示例：AI 三问洞察）
 

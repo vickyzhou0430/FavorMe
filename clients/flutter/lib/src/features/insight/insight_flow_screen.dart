@@ -40,6 +40,10 @@ class _InsightFlowScreenState extends State<InsightFlowScreen> {
       animation: widget.viewModel,
       builder: (context, _) {
         final viewModel = widget.viewModel;
+        if (viewModel.state == InsightFlowState.idle &&
+            viewModel.rawQuestion != _controller.text) {
+          _controller.text = viewModel.rawQuestion;
+        }
         return WillPopScope(
           onWillPop: () async {
             if (viewModel.canNavigateBackInFlow) {
@@ -62,8 +66,7 @@ class _InsightFlowScreenState extends State<InsightFlowScreen> {
                         const SizedBox(height: 24),
                         BottomQuestionInput(
                           controller: _controller,
-                          enabled: viewModel.state == InsightFlowState.idle ||
-                              viewModel.state == InsightFlowState.error,
+                          enabled: viewModel.canEditQuestionInput,
                           onSubmitted: () {
                             viewModel.submitQuestion(_controller.text);
                           },

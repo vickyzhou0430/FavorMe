@@ -35,6 +35,7 @@ class InsightViewModel extends ChangeNotifier {
   bool _submitInFlight = false;
   String? _conclusion;
   _RetryTarget? _retryTarget;
+  bool _invalidQuestionError = false;
 
   InsightFlowState get state => _state;
   String get rawQuestion => _rawQuestion;
@@ -50,6 +51,9 @@ class InsightViewModel extends ChangeNotifier {
   bool get submittingAnswers => _state == InsightFlowState.submittingAnswers;
   bool get showingResult => _state == InsightFlowState.showingResult;
   bool get canNavigateBackInFlow => _state == InsightFlowState.answeringQuestion;
+  bool get canEditQuestionInput =>
+      _state == InsightFlowState.idle ||
+      (_state == InsightFlowState.error && _invalidQuestionError);
 
   InsightQuestion? get currentQuestion {
     if (_questions.isEmpty) {
@@ -79,6 +83,7 @@ class InsightViewModel extends ChangeNotifier {
     _submitInFlight = false;
     _conclusion = null;
     _retryTarget = null;
+    _invalidQuestionError = false;
     _setState(InsightFlowState.questionSubmitted);
     _setState(InsightFlowState.generatingQuestions);
 
@@ -99,6 +104,7 @@ class InsightViewModel extends ChangeNotifier {
         return;
       }
       _retryTarget = _RetryTarget.generateQuestions;
+      _invalidQuestionError = error.code == 'INVALID_QUESTION_INPUT';
       _errorMessage = _messageFor(error);
       _setState(InsightFlowState.error);
     } on Object {
@@ -106,6 +112,7 @@ class InsightViewModel extends ChangeNotifier {
         return;
       }
       _retryTarget = _RetryTarget.generateQuestions;
+      _invalidQuestionError = false;
       _errorMessage = '刚刚没有连上服务。请检查网络后重试。';
       _setState(InsightFlowState.error);
     }
@@ -170,6 +177,7 @@ class InsightViewModel extends ChangeNotifier {
     _submitInFlight = false;
     _conclusion = null;
     _retryTarget = null;
+    _invalidQuestionError = false;
     _setState(InsightFlowState.idle);
   }
 
@@ -204,6 +212,7 @@ class InsightViewModel extends ChangeNotifier {
       _conclusion = response.conclusion;
       _submitInFlight = false;
       _retryTarget = null;
+      _invalidQuestionError = false;
       _setState(InsightFlowState.showingResult);
     } on InsightApiException catch (error) {
       if (seq != _requestSeq) {
@@ -211,6 +220,7 @@ class InsightViewModel extends ChangeNotifier {
       }
       _submitInFlight = false;
       _retryTarget = _RetryTarget.submitAnswers;
+      _invalidQuestionError = false;
       _errorMessage = _messageFor(error);
       _setState(InsightFlowState.error);
     } on Object {
@@ -219,6 +229,7 @@ class InsightViewModel extends ChangeNotifier {
       }
       _submitInFlight = false;
       _retryTarget = _RetryTarget.submitAnswers;
+      _invalidQuestionError = false;
       _errorMessage = '刚刚没有连上服务。请检查网络后重试。';
       _setState(InsightFlowState.error);
     }

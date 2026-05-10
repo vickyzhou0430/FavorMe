@@ -54,7 +54,43 @@ curl -s -X POST http://127.0.0.1:3000/v1/insight/submit \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "X-Device-Id: dev-device-001" \
   -H "Content-Type: application/json" \
-  -d '{"rawQuestion":"我要不要换工作？","questions":[{"id":"q1","dimension":"inner_preference","title":"如果只听真实直觉，你更靠近哪边？","options":[{"id":"stay","label":"保持现状"},{"id":"change","label":"尝试变化"}]}],"answers":[{"questionId":"q1","optionId":"change"}]}'
+  -d '{
+    "rawQuestion": "我要不要换工作？",
+    "questions": [
+      {
+        "id": "q1",
+        "dimension": "inner_preference",
+        "title": "如果只听真实直觉，你更靠近哪边？",
+        "options": [
+          { "id": "stay", "label": "保持现状" },
+          { "id": "change", "label": "尝试变化" }
+        ]
+      },
+      {
+        "id": "q2",
+        "dimension": "fear_boundary",
+        "title": "你最不能接受的风险是什么？",
+        "options": [
+          { "id": "income", "label": "收入短期不稳定" },
+          { "id": "growth", "label": "继续错过成长机会" }
+        ]
+      },
+      {
+        "id": "q3",
+        "dimension": "active_vs_avoidance",
+        "title": "这次选择更像靠近想要，还是逃离压力？",
+        "options": [
+          { "id": "toward", "label": "靠近更想要的状态" },
+          { "id": "away", "label": "逃离当前压力" }
+        ]
+      }
+    ],
+    "answers": [
+      { "questionId": "q1", "optionId": "change" },
+      { "questionId": "q2", "optionId": "growth" },
+      { "questionId": "q3", "optionId": "toward" }
+    ]
+  }'
 ```
 
 `rawQuestion`（兼容 `raw_question`）会在进入 LLM 前校验：去除首尾空白后需为 4–2000 个字符，并包含可读文本与基本疑问/决策语义。无效或噪声输入返回 422，错误码固定为 `INVALID_QUESTION_INPUT`，不会调用 LLM。

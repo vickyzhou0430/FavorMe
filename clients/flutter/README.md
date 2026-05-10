@@ -15,7 +15,7 @@ flutter run -d android \
   --dart-define=FAVORME_API_TOKEN=<backend API_TOKEN>
 ```
 
-Android emulator 访问宿主机后端时使用 `http://10.0.2.2:3000`。Android physical device 需要把 `FAVORME_API_BASE_URL` 指向同一局域网内可访问的机器地址，例如 `http://192.168.1.23:3000`。生产或公网测试环境应使用 HTTPS API 域名。
+Android emulator 访问宿主机后端时使用 `http://10.0.2.2:3000`。Android physical device 不在默认 cleartext 白名单内；请使用 HTTPS 后端地址、HTTPS 隧道，或为自己的本地 LAN 主机临时添加 debug-only network security config。生产或公网测试环境必须使用 HTTPS API 域名。
 
 ## Backend Contract
 
@@ -42,6 +42,6 @@ Phase 2 调用 Phase 1 的 REST + JSON 接口：
 
 ## Android Network Config
 
-`android/app/src/main/AndroidManifest.xml` 声明 `android.permission.INTERNET` 并引用 `@xml/network_security_config`。该配置只允许本地开发主机 `10.0.2.2`、`localhost`、`127.0.0.1` 使用 cleartext HTTP，方便模拟器联调本机后端。
+`android/app/src/main/AndroidManifest.xml` 声明 `android.permission.INTERNET` 并引用 `@xml/network_security_config`。该配置只允许本地开发主机 `10.0.2.2`、`localhost`、`127.0.0.1` 使用 cleartext HTTP，方便模拟器联调本机后端。物理 Android 设备如需访问 LAN HTTP 地址，必须使用临时 debug-only 配置显式加入该主机，不能放宽为通配 cleartext。
 
 生产环境仍要求 HTTPS；不要把生产域名加入 cleartext 白名单。

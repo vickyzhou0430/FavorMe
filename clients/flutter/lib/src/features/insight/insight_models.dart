@@ -120,8 +120,10 @@ class InsightQuestionsResponse {
 
   factory InsightQuestionsResponse.fromJson(Map<String, Object?> json) {
     final questionsJson = json['questions'];
-    if (questionsJson is! List || questionsJson.isEmpty) {
-      throw const FormatException('Questions response is malformed');
+    if (questionsJson is! List || questionsJson.length != 3) {
+      throw const FormatException(
+        'Questions response must contain exactly 3 questions',
+      );
     }
     return InsightQuestionsResponse(
       questions: questionsJson

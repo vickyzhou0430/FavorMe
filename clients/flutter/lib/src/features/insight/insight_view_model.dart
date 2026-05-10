@@ -33,6 +33,7 @@ class InsightViewModel extends ChangeNotifier {
   int _currentQuestionIndex = 0;
   int _requestSeq = 0;
   bool _submitInFlight = false;
+  bool _selectionInFlight = false;
   String? _conclusion;
   _RetryTarget? _retryTarget;
   bool _invalidQuestionError = false;
@@ -81,6 +82,7 @@ class InsightViewModel extends ChangeNotifier {
     _selectedAnswers.clear();
     _currentQuestionIndex = 0;
     _submitInFlight = false;
+    _selectionInFlight = false;
     _conclusion = null;
     _retryTarget = null;
     _invalidQuestionError = false;
@@ -132,15 +134,23 @@ class InsightViewModel extends ChangeNotifier {
   }
 
   Future<void> selectOption(InsightQuestion question, InsightOption option) async {
-    if (isBusy || _state != InsightFlowState.answeringQuestion) {
+    if (isBusy ||
+        _selectionInFlight ||
+        _state != InsightFlowState.answeringQuestion ||
+        currentQuestion?.id != question.id) {
       return;
     }
 
+    _selectionInFlight = true;
     _selectedAnswers[question.id] = option.id;
     notifyListeners();
     await Future<void>.delayed(AppMotion.selectionDuration);
 
-    if (_state != InsightFlowState.answeringQuestion) {
+    _selectionInFlight = false;
+
+    if (_state != InsightFlowState.answeringQuestion ||
+        currentQuestion?.id != question.id) {
+      notifyListeners();
       return;
     }
 
@@ -175,6 +185,7 @@ class InsightViewModel extends ChangeNotifier {
     _selectedAnswers.clear();
     _currentQuestionIndex = 0;
     _submitInFlight = false;
+    _selectionInFlight = false;
     _conclusion = null;
     _retryTarget = null;
     _invalidQuestionError = false;

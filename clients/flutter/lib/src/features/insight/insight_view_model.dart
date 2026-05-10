@@ -14,6 +14,11 @@ enum InsightFlowState {
   error,
 }
 
+enum _RetryTarget {
+  generateQuestions,
+  submitAnswers,
+}
+
 class InsightViewModel extends ChangeNotifier {
   InsightViewModel({required InsightQuestionsClient questionsClient})
       : _questionsClient = questionsClient;
@@ -29,6 +34,7 @@ class InsightViewModel extends ChangeNotifier {
   int _requestSeq = 0;
   bool _submitInFlight = false;
   String? _conclusion;
+  _RetryTarget? _retryTarget;
 
   InsightFlowState get state => _state;
   String get rawQuestion => _rawQuestion;
@@ -43,6 +49,7 @@ class InsightViewModel extends ChangeNotifier {
       _state == InsightFlowState.submittingAnswers;
   bool get submittingAnswers => _state == InsightFlowState.submittingAnswers;
   bool get showingResult => _state == InsightFlowState.showingResult;
+  bool get canNavigateBackInFlow => _state == InsightFlowState.answeringQuestion;
 
   InsightQuestion? get currentQuestion {
     if (_questions.isEmpty) {
@@ -71,6 +78,7 @@ class InsightViewModel extends ChangeNotifier {
     _currentQuestionIndex = 0;
     _submitInFlight = false;
     _conclusion = null;
+    _retryTarget = null;
     _setState(InsightFlowState.questionSubmitted);
     _setState(InsightFlowState.generatingQuestions);
 
@@ -84,27 +92,36 @@ class InsightViewModel extends ChangeNotifier {
       }
       _questions = response.questions;
       _currentQuestionIndex = 0;
+      _retryTarget = null;
       _setState(InsightFlowState.answeringQuestion);
     } on InsightApiException catch (error) {
       if (seq != _requestSeq) {
         return;
       }
+      _retryTarget = _RetryTarget.generateQuestions;
       _errorMessage = _messageFor(error);
       _setState(InsightFlowState.error);
     } on Object {
       if (seq != _requestSeq) {
         return;
       }
+      _retryTarget = _RetryTarget.generateQuestions;
       _errorMessage = '刚刚没有连上服务。请检查网络后重试。';
       _setState(InsightFlowState.error);
     }
   }
 
   Future<void> retry() {
-    if (_selectedAnswers.length == _questions.length && _questions.isNotEmpty) {
-      return _submitAnswers();
+    if (isBusy) {
+      return Future<void>.value();
     }
-    return submitQuestion(_rawQuestion);
+    switch (_retryTarget) {
+      case _RetryTarget.submitAnswers:
+        return _submitAnswers();
+      case _RetryTarget.generateQuestions:
+      case null:
+        return submitQuestion(_rawQuestion);
+    }
   }
 
   Future<void> selectOption(InsightQuestion question, InsightOption option) async {
@@ -152,6 +169,7 @@ class InsightViewModel extends ChangeNotifier {
     _currentQuestionIndex = 0;
     _submitInFlight = false;
     _conclusion = null;
+    _retryTarget = null;
     _setState(InsightFlowState.idle);
   }
 
@@ -185,12 +203,14 @@ class InsightViewModel extends ChangeNotifier {
       }
       _conclusion = response.conclusion;
       _submitInFlight = false;
+      _retryTarget = null;
       _setState(InsightFlowState.showingResult);
     } on InsightApiException catch (error) {
       if (seq != _requestSeq) {
         return;
       }
       _submitInFlight = false;
+      _retryTarget = _RetryTarget.submitAnswers;
       _errorMessage = _messageFor(error);
       _setState(InsightFlowState.error);
     } on Object {
@@ -198,6 +218,7 @@ class InsightViewModel extends ChangeNotifier {
         return;
       }
       _submitInFlight = false;
+      _retryTarget = _RetryTarget.submitAnswers;
       _errorMessage = '刚刚没有连上服务。请检查网络后重试。';
       _setState(InsightFlowState.error);
     }

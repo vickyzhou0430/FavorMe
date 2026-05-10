@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
 import 'insight_view_model.dart';
+import 'widgets/bottom_question_input.dart';
+import 'widgets/loading_error_card.dart';
 import 'widgets/question_card.dart';
 import 'widgets/result_card.dart';
 
@@ -38,27 +40,36 @@ class _InsightFlowScreenState extends State<InsightFlowScreen> {
       animation: widget.viewModel,
       builder: (context, _) {
         final viewModel = widget.viewModel;
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          body: SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
-                  child: Column(
-                    children: [
-                      Expanded(child: _buildBody(viewModel)),
-                      const SizedBox(height: 24),
-                      _BottomQuestionInput(
-                        controller: _controller,
-                        enabled: viewModel.state == InsightFlowState.idle ||
-                            viewModel.state == InsightFlowState.error,
-                        onSubmitted: () {
-                          viewModel.submitQuestion(_controller.text);
-                        },
-                      ),
-                    ],
+        return WillPopScope(
+          onWillPop: () async {
+            if (viewModel.canNavigateBackInFlow) {
+              viewModel.goBack();
+              return false;
+            }
+            return true;
+          },
+          child: Scaffold(
+            backgroundColor: AppColors.background,
+            body: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
+                    child: Column(
+                      children: [
+                        Expanded(child: _buildBody(viewModel)),
+                        const SizedBox(height: 24),
+                        BottomQuestionInput(
+                          controller: _controller,
+                          enabled: viewModel.state == InsightFlowState.idle ||
+                              viewModel.state == InsightFlowState.error,
+                          onSubmitted: () {
+                            viewModel.submitQuestion(_controller.text);
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -95,7 +106,7 @@ class _InsightFlowScreenState extends State<InsightFlowScreen> {
         return _FlowStack(
           key: const ValueKey('loading'),
           rawQuestion: viewModel.rawQuestion,
-          child: const _LoadingQuestionCard(),
+          child: const LoadingErrorCard.loading(kind: LoadingCardKind.questions),
         );
       case InsightFlowState.answeringQuestion:
         final question = viewModel.currentQuestion;
@@ -120,7 +131,9 @@ class _InsightFlowScreenState extends State<InsightFlowScreen> {
         return _FlowStack(
           key: const ValueKey('submittingAnswers'),
           rawQuestion: viewModel.rawQuestion,
-          child: const _LoadingConclusionCard(),
+          child: const LoadingErrorCard.loading(
+            kind: LoadingCardKind.conclusion,
+          ),
         );
       case InsightFlowState.showingResult:
         return _FlowStack(
@@ -136,7 +149,7 @@ class _InsightFlowScreenState extends State<InsightFlowScreen> {
         return _FlowStack(
           key: const ValueKey('error'),
           rawQuestion: viewModel.rawQuestion,
-          child: _ErrorCard(
+          child: LoadingErrorCard.error(
             message: viewModel.errorMessage ?? '刚刚没有连上服务。请检查网络后重试。',
             onRetry: viewModel.retry,
           ),
@@ -226,307 +239,5 @@ class _CardEntrance extends StatelessWidget {
       },
       child: child,
     );
-  }
-}
-
-class _LoadingConclusionCard extends StatefulWidget {
-  const _LoadingConclusionCard();
-
-  @override
-  State<_LoadingConclusionCard> createState() => _LoadingConclusionCardState();
-}
-
-class _LoadingConclusionCardState extends State<_LoadingConclusionCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: AppMotion.loadingBreathDuration,
-      lowerBound: 0.72,
-      upperBound: 1,
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _SoftCard(
-      color: AppColors.loadingWash,
-      child: Semantics(
-        label: '正在生成倾向分析…',
-        child: FadeTransition(
-          opacity: _controller,
-          child: const Text('正在生成倾向分析…', style: AppTypography.action),
-        ),
-      ),
-    );
-  }
-}
-
-class _LoadingQuestionCard extends StatefulWidget {
-  const _LoadingQuestionCard();
-
-  @override
-  State<_LoadingQuestionCard> createState() => _LoadingQuestionCardState();
-}
-
-class _LoadingQuestionCardState extends State<_LoadingQuestionCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: AppMotion.loadingBreathDuration,
-      lowerBound: 0.72,
-      upperBound: 1,
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _SoftCard(
-      color: AppColors.loadingWash,
-      child: Semantics(
-        label: '正在整理你的三问…',
-        child: FadeTransition(
-          opacity: _controller,
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 10,
-                height: 10,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: AppColors.accent,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              SizedBox(width: 10),
-              Text('正在整理你的三问…', style: AppTypography.action),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({
-    required this.message,
-    required this.onRetry,
-  });
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SoftCard(
-      color: AppColors.errorWash,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(message, style: AppTypography.body),
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _PressScale(
-              onTap: onRetry,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Text('重试', style: AppTypography.action),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SoftCard extends StatelessWidget {
-  const _SoftCard({
-    required this.child,
-    this.color = AppColors.surface,
-  });
-
-  final Widget child;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(color: AppColors.borderSoft),
-        boxShadow: AppShadows.soft,
-      ),
-      child: child,
-    );
-  }
-}
-
-class _BottomQuestionInput extends StatefulWidget {
-  const _BottomQuestionInput({
-    required this.controller,
-    required this.enabled,
-    required this.onSubmitted,
-  });
-
-  final TextEditingController controller;
-  final bool enabled;
-  final VoidCallback onSubmitted;
-
-  @override
-  State<_BottomQuestionInput> createState() => _BottomQuestionInputState();
-}
-
-class _BottomQuestionInputState extends State<_BottomQuestionInput> {
-  bool _hasText = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _hasText = widget.controller.text.trim().isNotEmpty;
-    widget.controller.addListener(_syncTextState);
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_syncTextState);
-    super.dispose();
-  }
-
-  void _syncTextState() {
-    final next = widget.controller.text.trim().isNotEmpty;
-    if (next != _hasText) {
-      setState(() {
-        _hasText = next;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final canSend = widget.enabled && _hasText;
-    return Container(
-      constraints: const BoxConstraints(minHeight: AppSizes.inputMinHeight),
-      padding: const EdgeInsets.fromLTRB(18, 6, 6, 6),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadii.inputCapsule),
-        border: Border.all(color: AppColors.borderSoft),
-        boxShadow: AppShadows.soft,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: widget.controller,
-              enabled: widget.enabled,
-              minLines: 1,
-              maxLines: 3,
-              style: AppTypography.body,
-              decoration: const InputDecoration(
-                hintText: '输入你纠结的问题…',
-                hintStyle: AppTypography.body,
-                border: InputBorder.none,
-              ),
-              onSubmitted: (_) {
-                if (canSend) {
-                  widget.onSubmitted();
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: 10),
-          _PressScale(
-            enabled: canSend,
-            onTap: widget.onSubmitted,
-            child: Container(
-              constraints: const BoxConstraints(
-                minWidth: AppSizes.minTouchTarget,
-                minHeight: AppSizes.minTouchTarget,
-              ),
-              decoration: BoxDecoration(
-                color: canSend ? AppColors.accent : AppColors.borderSoft,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                '发送问题',
-                style: AppTypography.caption.copyWith(
-                  color: canSend ? AppColors.surface : AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PressScale extends StatefulWidget {
-  const _PressScale({
-    required this.child,
-    required this.onTap,
-    this.enabled = true,
-  });
-
-  final Widget child;
-  final VoidCallback onTap;
-  final bool enabled;
-
-  @override
-  State<_PressScale> createState() => _PressScaleState();
-}
-
-class _PressScaleState extends State<_PressScale> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.enabled ? widget.onTap : null,
-      onTapDown: widget.enabled ? (_) => _setPressed(true) : null,
-      onTapCancel: widget.enabled ? () => _setPressed(false) : null,
-      onTapUp: widget.enabled ? (_) => _setPressed(false) : null,
-      child: AnimatedScale(
-        scale: _pressed ? AppMotion.pressScale : 1,
-        duration: AppMotion.pressDuration,
-        child: widget.child,
-      ),
-    );
-  }
-
-  void _setPressed(bool value) {
-    setState(() {
-      _pressed = value;
-    });
   }
 }

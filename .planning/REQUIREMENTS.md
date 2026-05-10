@@ -16,7 +16,7 @@
 ### API & Backend
 
 - [x] **API-01**: 提供接收「用户原始问题」的接口（含鉴权占位或开发用固定 token，需文档说明）
-- [ ] **API-02**: 提供接收「三问作答（每题所选选项 id）」的接口并返回结论（Phase 1 verification gap: submit must enforce complete three-question answers）
+- [x] **API-02**: 提供接收「三问作答（每题所选选项 id）」的接口并返回结论
 - [x] **API-03**: 对无效/非问题类输入返回 **4xx** 与可读错误信息，不强行生成三问
 
 ### AI & Orchestration
@@ -56,7 +56,7 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | API-01 | Phase 1 | Complete in 01-01 |
-| API-02 | Phase 1 | Gap found in 01-VERIFICATION.md |
+| API-02 | Phase 1 | Complete in 01-04 |
 | API-03 | Phase 1 | Complete in 01-03 |
 | AI-01 | Phase 1 | Complete in 01-02 |
 | AI-02 | Phase 1 | Complete in 01-02 |
@@ -76,4 +76,4 @@
 
 ---
 *Requirements defined: 2026-05-09*  
-*Last updated: 2026-05-09 after gsd-new-project*
+*Last updated: 2026-05-10 after Phase 1 gap closure verification*

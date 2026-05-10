@@ -32,6 +32,14 @@ Phase 2 调用 Phase 1 的 REST + JSON 接口：
 
 `API_BASE_URL` 与 `API_TOKEN` 在 Flutter 中分别对应 `FAVORME_API_BASE_URL` 与 `FAVORME_API_TOKEN` 的 dart-define 值。AI/vendor keys、完整 prompt 模板、模型路由和商业策略都保持 backend-only，不进入 Flutter 仓库或移动端包。
 
+## Security And Local Configuration
+
+- Use the backend `API_TOKEN` only as development configuration for Phase 2 local testing; never commit real production tokens or paste them into Dart source.
+- Keep AI/vendor keys, prompt templates, model routing, and fallback strategy backend-only. Flutter should call the backend API, not model providers directly.
+- Use HTTPS outside local development. Cleartext HTTP is allowed only for emulator or LAN backend testing through the scoped Android network config.
+- The device id is a stable development identifier for `X-Device-Id`, not formal auth. Production identity, account binding, and payments remain out of scope for this phase.
+- Treat the raw question as sensitive user input: do not log raw question bodies in the client, including debug prints, analytics events, crash breadcrumbs, or retry diagnostics.
+
 ## Android Network Config
 
 `android/app/src/main/AndroidManifest.xml` 声明 `android.permission.INTERNET` 并引用 `@xml/network_security_config`。该配置只允许本地开发主机 `10.0.2.2`、`localhost`、`127.0.0.1` 使用 cleartext HTTP，方便模拟器联调本机后端。

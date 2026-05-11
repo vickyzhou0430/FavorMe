@@ -45,3 +45,21 @@ Phase 2 调用 Phase 1 的 REST + JSON 接口：
 `android/app/src/main/AndroidManifest.xml` 声明 `android.permission.INTERNET` 并引用 `@xml/network_security_config`。该配置只允许本地开发主机 `10.0.2.2`、`localhost`、`127.0.0.1` 使用 cleartext HTTP，方便模拟器联调本机后端。物理 Android 设备如需访问 LAN HTTP 地址，必须使用临时 debug-only 配置显式加入该主机，不能放宽为通配 cleartext。
 
 生产环境仍要求 HTTPS；不要把生产域名加入 cleartext 白名单。
+
+## 构建问题：Gradle PKIX / SSLHandshakeException
+
+`flutter build apk` 首次会由 Gradle Wrapper 下载 `gradle-*-all.zip`。若终端出现 `PKIX path building failed` / `unable to find valid certification path`，通常是 **当前 JDK 不信任下载站点的证书链**（公司 HTTPS 代理、SSL 检查、或本机 Java 信任库过旧）。
+
+本项目已将 Wrapper 的 `distributionUrl` 指向 **腾讯云 Gradle 镜像**（与官方包同源），在部分网络下可绕过对 `services.gradle.org` 的信任或连通问题。若仍失败，可依次尝试：
+
+1. **让 Flutter/Gradle 使用 Android Studio 自带的 JBR**（证书链通常较新），例如在 macOS：
+   ```bash
+   export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+   cd clients/flutter && flutter build apk
+   ```
+2. **公司代理根证书**：将公司下发的根 CA 导入上述 JDK 的 `cacerts`，或按 IT 文档配置 `JAVA_TOOL_OPTIONS` / `javax.net.ssl.trustStore`（勿把私钥或内部证书提交到仓库）。
+3. **离线安装**：在一台可访问镜像的机器上下载对应版本的 `gradle-8.14-all.zip`，按 Gradle 文档放入本机 `~/.gradle/wrapper/dists/` 下对应哈希目录，再重试构建。
+
+若需改回官方地址，可编辑 `android/gradle/wrapper/gradle-wrapper.properties` 中的 `distributionUrl`。
+
+若曾失败到一半，可删除 `~/.gradle/wrapper/dists` 下对应 `gradle-8.14-all` 子目录后重试，避免使用损坏的缓存包。

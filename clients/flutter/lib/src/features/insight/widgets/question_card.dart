@@ -49,11 +49,11 @@ class QuestionCard extends StatelessWidget {
                   _PressScale(
                     enabled: enabled,
                     onTap: onPrevious,
-                    child: const ConstrainedBox(
-                      constraints: BoxConstraints(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
                         minHeight: AppSizes.minTouchTarget,
                       ),
-                      child: Align(
+                      child: const Align(
                         alignment: Alignment.centerRight,
                         child: Text('上一题', style: AppTypography.action),
                       ),

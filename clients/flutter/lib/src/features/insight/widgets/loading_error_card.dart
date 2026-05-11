@@ -42,12 +42,12 @@ class LoadingErrorCard extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: _PressScale(
               onTap: onRetry ?? () {},
-              child: const ConstrainedBox(
-                constraints: BoxConstraints(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
                   minWidth: AppSizes.minTouchTarget,
                   minHeight: AppSizes.minTouchTarget,
                 ),
-                child: Padding(
+                child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Text('重试', style: AppTypography.action),
                 ),

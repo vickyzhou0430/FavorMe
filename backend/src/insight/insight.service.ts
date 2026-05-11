@@ -89,7 +89,7 @@ export class InsightService {
         user: buildQuestionsUserPrompt(rawQuestion),
         temperature: 0.3,
       });
-      const result = this.parseQuestions(completion.text);
+      const result = this.parseQuestions(completion.text, context.requestId);
 
       this.logInsightRequest({
         event: 'insight.questions.success',
@@ -175,8 +175,12 @@ export class InsightService {
     }
   }
 
-  private parseQuestions(text: string): { questions: InsightQuestion[] } {
+  private parseQuestions(
+    text: string,
+    requestId: string,
+  ): { questions: InsightQuestion[] } {
     const parsedJson = this.parseJsonObject(text);
+    this.throwIfLlmRejectsScope(parsedJson, requestId);
     const result = questionsResponseSchema.safeParse(parsedJson);
     if (!result.success) {
       throw new BadGatewayException({
@@ -186,6 +190,28 @@ export class InsightService {
     }
 
     return result.data;
+  }
+
+  private throwIfLlmRejectsScope(parsedJson: unknown, requestId: string): void {
+    if (!parsedJson || typeof parsedJson !== 'object') {
+      return;
+    }
+    const record = parsedJson as Record<string, unknown>;
+    if (record.inScope !== false) {
+      return;
+    }
+
+    const rawMessage = record.message;
+    const trimmed =
+      typeof rawMessage === 'string' ? rawMessage.trim().slice(0, 500) : '';
+
+    throw new UnprocessableEntityException({
+      code: 'INVALID_QUESTION_INPUT',
+      message:
+        trimmed ||
+        '当前输入不适合用「三问」框架；请尽量描述一个具体的选择或纠结点。',
+      requestId,
+    });
   }
 
   private parseJsonObject(text: string): unknown {

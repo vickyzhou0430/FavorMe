@@ -17,6 +17,46 @@ flutter run -d android \
 
 Android emulator 访问宿主机后端时使用 `http://10.0.2.2:3000`。Android physical device 不在默认 cleartext 白名单内；请使用 HTTPS 后端地址、HTTPS 隧道，或为自己的本地 LAN 主机临时添加 debug-only network security config。生产或公网测试环境必须使用 HTTPS API 域名。
 
+可选 dart-define：
+
+- `FAVORME_API_TIMEOUT_SECONDS`（默认 `60`）：单次 Insight 请求的整体超时秒数，同时作用于 TCP 连接超时。`/v1/insight/submit` 的首条调用要触发 LLM 冷启动，本地联调遇到偶发超时可临时调大（例如 `120`）以排除"只是慢"。
+- `FAVORME_ALLOW_BAD_TLS=true`（默认 `false`）：仅调试用，跳过 TLS 证书校验。生产构建禁用。
+
+## 调试网络日志
+
+`InsightApiClient` 在 **debug 构建** 下会向 `dart:developer` 打结构化日志，channel 名为 `insight.api`。日志只包含元数据（host、状态码、耗时、错误码、`requestId`），**不含** `rawQuestion`、`answers` 或服务端 `message` 内容（遵守下文 Security 段对原文不落盘的约定）。Release 构建经 `kDebugMode` 短路，整段日志不会执行。
+
+查看方式（任选其一）：
+
+```bash
+# 1) flutter run 控制台直接看
+flutter run -d android \
+  --dart-define=FAVORME_API_BASE_URL=... \
+  --dart-define=FAVORME_API_TOKEN=...
+
+# 2) adb logcat 过滤（应用单独连机调试时）
+adb logcat -v time | grep -E "insight\.api|flutter"
+
+# 3) Flutter DevTools -> Logging 面板，按 logger name 过滤 insight.api
+```
+
+典型输出（举例）：
+
+```
+[insight.api] POST /v1/insight/submit start host=10.0.2.2:3000 bytes=842 timeout=60s
+[insight.api] POST /v1/insight/submit -> 200 in 8423ms bytes=312
+```
+
+或失败时：
+
+```
+[insight.api] POST /v1/insight/submit TIMEOUT after 60014ms (limit=60s)
+[insight.api] POST /v1/insight/questions non-2xx status=429 code=RATE_LIMITED requestId=req_abc123
+[insight.api] POST /v1/insight/submit SOCKET error after 132ms: os=61 msg=Connection refused
+```
+
+依据这两行就能区分到底是「没连上后端」「连上但被后端拒了」「连上但模型太慢超时」。
+
 ## Backend Contract
 
 Phase 2 调用 Phase 1 的 REST + JSON 接口：

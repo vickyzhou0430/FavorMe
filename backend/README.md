@@ -93,7 +93,7 @@ curl -s -X POST http://127.0.0.1:3000/v1/insight/submit \
   }'
 ```
 
-`rawQuestion`（兼容 `raw_question`）会在进入 LLM 前校验：去除首尾空白后需为 4–2000 个字符，并包含可读文本与基本疑问/决策语义。无效或噪声输入返回 422，错误码固定为 `INVALID_QUESTION_INPUT`，不会调用 LLM。
+`rawQuestion`（兼容 `raw_question`）在进入 LLM 前仅做技术侧规范化：去除首尾空白、折叠空白为单空格；不得为空；长度上限 2000 字符。超出上限或空串返回 422，错误码 `INVALID_QUESTION_INPUT`。是否属于产品适用范围由 **system prompt** 中的语义约定约束；模型若判定不适合生成三问，应返回 `{"inScope":false,"message":"..."}`，服务层将其转为同一错误码与可读 `message`（仍会消耗一次 LLM 调用）。
 
 ## LLM 配置：火山方舟 / Doubao
 

@@ -122,7 +122,7 @@ The main page is a single Flutter screen with a finite state machine:
 
 | State | Required UI |
 |-------|-------------|
-| `idle` | Soft empty homepage, bottom input capsule enabled, no chat history list |
+| `idle` | Soft empty homepage; the empty-state heading/body and bottom input capsule are the primary visual anchor; input enabled, no chat history list |
 | `questionSubmitted` | User question bubble remains visible; input disabled while loading begins |
 | `generatingQuestions` | Card-level loading with “正在整理你的三问…” and light breathing/typing motion |
 | `answeringQuestion` | One question card at a time, progress `第 1 / 3 问`, options shown as large rounded pills |
@@ -149,6 +149,7 @@ The main page is a single Flutter screen with a finite state machine:
 ### Cards And Surfaces
 
 - Cards use white surfaces, 24px corner radius, optional soft border, and `Shadow soft`.
+- On the idle screen, the empty-state prompt and bottom input capsule define the hierarchy; do not add extra hero artwork or secondary modules that compete with the input.
 - Question cards should sit in the visual center/upper-middle of the available area, not as a dense form list.
 - Result card can be taller and scroll internally for long conclusion text; keep bottom actions visible.
 - Option pills use 999px radius, minimum 48px height, `16px` horizontal padding, and high-contrast selected state.
@@ -188,11 +189,11 @@ The main page is a single Flutter screen with a finite state machine:
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-05-10

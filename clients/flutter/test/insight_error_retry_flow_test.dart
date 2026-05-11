@@ -125,7 +125,8 @@ void main() {
 
     await tester.pumpWidget(_testApp(fakeClient));
     await tester.enterText(find.byType(TextField), '我要不要换工作？');
-    await tester.tap(find.text('发送问题'));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pump();
     await tester.pump(AppMotion.loadingMinimumDuration);
     await tester.pumpAndSettle();
@@ -175,15 +176,13 @@ void main() {
 
     await tester.pumpWidget(_testApp(fakeClient));
     await tester.enterText(find.byType(TextField), '选择');
-    await tester.tap(find.text('发送问题'));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pump();
     await tester.pump(AppMotion.loadingMinimumDuration);
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('这个问题还不够明确。换个更具体的说法，我再帮你拆成三问。'),
-      findsOneWidget,
-    );
+    expect(find.text('Question is too vague.'), findsOneWidget);
     expect(find.widgetWithText(TextField, '选择'), findsOneWidget);
 
     final textField = tester.widget<TextField>(find.byType(TextField));
@@ -196,10 +195,12 @@ void main() {
 
     await tester.pumpWidget(_testApp(fakeClient));
     await tester.enterText(find.byType(TextField), '我要不要换工作？');
-    await tester.tap(find.text('发送问题'));
     await tester.pump();
-    await tester.tap(find.text('发送问题'), warnIfMissed: false);
+    await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pump();
+    await tester.tap(find.byIcon(Icons.send_rounded), warnIfMissed: false);
+    await tester.pump();
+    await tester.pump(AppMotion.loadingMinimumDuration);
 
     expect(fakeClient.questionCalls, 1);
 
@@ -250,6 +251,9 @@ void main() {
     expect(loadingErrorSource, contains('typing'));
 
     expect(bottomInputSource, contains('输入你纠结的问题…'));
+    expect(bottomInputSource, contains('发送问题'));
+    expect(bottomInputSource, contains('Tooltip'));
+    expect(bottomInputSource, contains('Icons.send_rounded'));
     expect(bottomInputSource, contains('AppSizes.minTouchTarget'));
     expect(bottomInputSource, contains('AppMotion.pressScale'));
     expect(bottomInputSource, contains('Shadow soft'));
@@ -267,7 +271,8 @@ Widget _testApp(InsightQuestionsClient questionsClient) {
 
 Future<void> _generateQuestions(WidgetTester tester) async {
   await tester.enterText(find.byType(TextField), '我要不要换工作？');
-  await tester.tap(find.text('发送问题'));
+  await tester.pump();
+  await tester.tap(find.byIcon(Icons.send_rounded));
   await tester.pump();
   await tester.pump(AppMotion.loadingMinimumDuration);
   await tester.pumpAndSettle();

@@ -253,7 +253,19 @@ class InsightViewModel extends ChangeNotifier {
 
   String _messageFor(InsightApiException error) {
     if (error.code == 'INVALID_QUESTION_INPUT') {
+      final server = error.message.trim();
+      if (server.isNotEmpty) {
+        return server;
+      }
       return '这个问题还不够明确。换个更具体的说法，我再帮你拆成三问。';
+    }
+    switch (error.code) {
+      case 'TLS_HANDSHAKE_FAILED':
+      case 'NETWORK_UNREACHABLE':
+      case 'NETWORK_TIMEOUT':
+        return error.message;
+      default:
+        break;
     }
     return '刚刚没有连上服务。请检查网络后重试。';
   }

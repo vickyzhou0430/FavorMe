@@ -65,13 +65,18 @@ void main() {
     );
 
     expect(find.text('你今天想问什么？'), findsOneWidget);
-    expect(find.text('发送问题'), findsOneWidget);
+    expect(find.byIcon(Icons.send_rounded), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), '我要不要换工作？');
-    await tester.tap(find.text('发送问题'));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pump();
 
     expect(find.text('正在整理你的三问…'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller?.text ?? '',
+      '',
+    );
 
     await tester.pump(AppMotion.cardEntranceDuration);
     await tester.pumpAndSettle();

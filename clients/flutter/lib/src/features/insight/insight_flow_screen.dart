@@ -21,6 +21,7 @@ class InsightFlowScreen extends StatefulWidget {
 
 class _InsightFlowScreenState extends State<InsightFlowScreen> {
   late final TextEditingController _controller;
+  InsightFlowState _previousViewModelState = InsightFlowState.idle;
 
   @override
   void initState() {
@@ -40,7 +41,28 @@ class _InsightFlowScreenState extends State<InsightFlowScreen> {
       animation: widget.viewModel,
       builder: (context, _) {
         final viewModel = widget.viewModel;
+        // After send we clear the field; restore draft when invalid-question error returns.
+        if (viewModel.state == InsightFlowState.error &&
+            viewModel.canEditQuestionInput &&
+            _previousViewModelState == InsightFlowState.generatingQuestions) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) {
+              return;
+            }
+            final vm = widget.viewModel;
+            if (vm.state == InsightFlowState.error && vm.canEditQuestionInput) {
+              if (_controller.text != vm.rawQuestion) {
+                _controller.text = vm.rawQuestion;
+              }
+            }
+          });
+        }
+        _previousViewModelState = viewModel.state;
+
+        // Only mirror a non-empty VM draft (e.g. goBack with keepRawQuestion). When
+        // rawQuestion is still empty, the user may be composing — do not overwrite.
         if (viewModel.state == InsightFlowState.idle &&
+            viewModel.rawQuestion.isNotEmpty &&
             viewModel.rawQuestion != _controller.text) {
           _controller.text = viewModel.rawQuestion;
         }
@@ -68,7 +90,12 @@ class _InsightFlowScreenState extends State<InsightFlowScreen> {
                           controller: _controller,
                           enabled: viewModel.canEditQuestionInput,
                           onSubmitted: () {
-                            viewModel.submitQuestion(_controller.text);
+                            final text = _controller.text.trim();
+                            if (text.isEmpty) {
+                              return;
+                            }
+                            viewModel.submitQuestion(text);
+                            _controller.clear();
                           },
                         ),
                       ],

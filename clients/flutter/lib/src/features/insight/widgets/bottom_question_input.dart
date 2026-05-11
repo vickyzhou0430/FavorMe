@@ -19,33 +19,8 @@ class BottomQuestionInput extends StatefulWidget {
 }
 
 class _BottomQuestionInputState extends State<BottomQuestionInput> {
-  bool _hasText = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _hasText = widget.controller.text.trim().isNotEmpty;
-    widget.controller.addListener(_syncTextState);
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_syncTextState);
-    super.dispose();
-  }
-
-  void _syncTextState() {
-    final next = widget.controller.text.trim().isNotEmpty;
-    if (next != _hasText) {
-      setState(() {
-        _hasText = next;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final canSend = widget.enabled && _hasText;
     return Container(
       constraints: const BoxConstraints(minHeight: AppSizes.inputMinHeight),
       padding: const EdgeInsets.fromLTRB(18, 6, 6, 6),
@@ -70,6 +45,8 @@ class _BottomQuestionInputState extends State<BottomQuestionInput> {
                 border: InputBorder.none,
               ),
               onSubmitted: (_) {
+                final canSend = widget.enabled &&
+                    widget.controller.text.trim().isNotEmpty;
                 if (canSend) {
                   widget.onSubmitted();
                 }
@@ -77,27 +54,35 @@ class _BottomQuestionInputState extends State<BottomQuestionInput> {
             ),
           ),
           const SizedBox(width: 10),
-          _PressScale(
-            enabled: canSend,
-            onTap: widget.onSubmitted,
-            child: Container(
-              constraints: const BoxConstraints(
-                minWidth: AppSizes.minTouchTarget,
-                minHeight: AppSizes.minTouchTarget,
-              ),
-              decoration: BoxDecoration(
-                color: canSend ? AppColors.accent : AppColors.borderSoft,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                '发送问题',
-                style: AppTypography.caption.copyWith(
-                  color: canSend ? AppColors.surface : AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: widget.controller,
+            builder: (context, value, _) {
+              final canSend = widget.enabled && value.text.trim().isNotEmpty;
+              return Tooltip(
+                message: '发送问题',
+                child: _PressScale(
+                  enabled: canSend,
+                  onTap: widget.onSubmitted,
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      minWidth: AppSizes.minTouchTarget,
+                      minHeight: AppSizes.minTouchTarget,
+                    ),
+                    decoration: BoxDecoration(
+                      color: canSend ? AppColors.accent : AppColors.borderSoft,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.send_rounded,
+                      size: 22,
+                      color:
+                          canSend ? AppColors.surface : AppColors.textSecondary,
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ],
       ),

@@ -80,7 +80,8 @@ void main() {
     );
 
     await tester.enterText(find.byType(TextField), '我要不要换工作？');
-    await tester.tap(find.text('发送问题'));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pump();
     await tester.pump(AppMotion.cardEntranceDuration);
     await tester.pumpAndSettle();

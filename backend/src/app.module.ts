@@ -5,6 +5,7 @@ import { ApiTokenGuard } from './common/guards/api-token.guard';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { HealthModule } from './health/health.module';
 import { InsightModule } from './insight/insight.module';
+import { InsightV2Module } from './insight-v2/insight-v2.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 
@@ -17,6 +18,7 @@ import { UsersModule } from './users/users.module';
     PrismaModule,
     HealthModule,
     InsightModule,
+    InsightV2Module,
     UsersModule,
   ],
   controllers: [AppController],

@@ -42,12 +42,15 @@ flowchart LR
   G --> LLM
 ```
 
-## 2. AI 洞察三问编排（控制平面 / 执行平面）
+## 2. 核心编排：点醒 · 动态问卷状态机（当前主线）
 
-- **决策摘要**：[ADR-004：AI Chat 控制平面与初版可演进](decisions/004-agent-backend-control-plane.md)。  
-- **接口与表名草案**：[`modules/ai-chat-orchestration.md`](modules/ai-chat-orchestration.md)（含三问生成约束、REST 草图、数据结构、`LlmClient` / `TurnOrchestrator` 边界）。  
+- **决策摘要**：[ADR-005：动态问卷状态机 + 有状态会话端点](decisions/005-dynamic-questionnaire-state-machine.md)（升级自 [ADR-004](decisions/004-agent-backend-control-plane.md)）。
+- **权威模块文档**：[`modules/insight-v2-dynamic-questionnaire.md`](modules/insight-v2-dynamic-questionnaire.md)（状态机、`/v1/insight-v2/*` 契约、8 策略、五级量表、历史、Prompt 运行时调参）。
 
-逻辑上：`API 与鉴权` → **输入校验（是否为有效问题）** → **可选背景补充** → **三问生成** → **用户作答** → **倾向输出** → 持久化与审计。
+逻辑上（有状态，逐轮编排）：`API 与鉴权` → 加载会话 transcript → **取运行时生效 Prompt**（默认内置，可被 debug 覆盖）→ 调 LLM（强制 JSON）→ **四重解析 + 收题/策略护栏** → 落库 → 返回 `status`（`need_info`/`questioning`/`finished`）。每次决策约 4–7 次 LLM 调用。
+
+- **数据**：`InsightV2Session`（会话 transcript / 题目轨迹 / 策略序列 / 报告）+ `PromptOverride`（运行时提示词覆盖，`INSIGHT_V2_PROMPT_OVERRIDE_ENABLED` 默认关闭）。
+- **历史阶段（固定三问，deprecated 保留兼容）**：`/v1/insight/*` 编排见 [`modules/ai-chat-orchestration.md`](modules/ai-chat-orchestration.md)。
 
 ## 3. 边界原则
 

@@ -13,10 +13,20 @@ interface ChatCompletionResponse {
   }>;
 }
 
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 export interface CompleteChatInput {
-  system: string;
-  user: string;
+  /** 单轮便捷写法：system + user。与 messages 二选一。 */
+  system?: string;
+  user?: string;
+  /** 多轮写法：完整消息数组（不含 system 时由 system 字段补在最前）。 */
+  messages?: ChatMessage[];
   temperature?: number;
+  /** 设为 'json_object' 时透传 response_format，强制 JSON 输出。 */
+  responseFormat?: 'json_object';
 }
 
 export interface CompleteChatResult {
@@ -37,6 +47,7 @@ export class LlmService {
     // Provider-specific prefixes belong in the env value.
     const url = `${baseUrl}/chat/completions`;
     const startedAt = Date.now();
+    const messages = this.buildMessages(input);
 
     let response: Response;
     try {
@@ -48,11 +59,11 @@ export class LlmService {
         },
         body: JSON.stringify({
           model,
-          messages: [
-            { role: 'system', content: input.system },
-            { role: 'user', content: input.user },
-          ],
+          messages,
           temperature: input.temperature ?? 0.4,
+          ...(input.responseFormat
+            ? { response_format: { type: input.responseFormat } }
+            : {}),
         }),
       });
     } catch {
@@ -80,6 +91,19 @@ export class LlmService {
     }
 
     return { text: text.trim(), latencyMs };
+  }
+
+  private buildMessages(input: CompleteChatInput): ChatMessage[] {
+    if (input.messages && input.messages.length > 0) {
+      return input.system
+        ? [{ role: 'system', content: input.system }, ...input.messages]
+        : input.messages;
+    }
+
+    return [
+      { role: 'system', content: input.system ?? '' },
+      { role: 'user', content: input.user ?? '' },
+    ];
   }
 
   private requiredEnv(name: 'AI_BASE_URL' | 'AI_API_KEY' | 'AI_MODEL'): string {

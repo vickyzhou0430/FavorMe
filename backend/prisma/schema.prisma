@@ -16,9 +16,10 @@ model User {
   email     String?  @unique
   deviceId  String?  @unique
 
-  conversations    Conversation[]
-  llmInvocations   LlmInvocation[]
-  insightRounds    InsightRound[]
+  conversations     Conversation[]
+  llmInvocations    LlmInvocation[]
+  insightRounds     InsightRound[]
+  insightV2Sessions InsightV2Session[]
 }
 
 model InsightRound {
@@ -35,6 +36,52 @@ model InsightRound {
 
   @@index([userId])
   @@index([requestId])
+}
+
+/// 「点醒」动态问卷会话（见 docs/tasks/004 + ADR-005）。
+/// 有状态：每轮加载 transcript → 调 LLM → 校验/收题护栏 → 回写。
+model InsightV2Session {
+  id             String          @id @default(cuid())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  userId         String
+  status         InsightV2Status @default(questioning)
+  /// 用户原始纠结描述
+  dilemma        String          @db.Text
+  /// 发给模型的完整消息历史 [{ role, content }]
+  transcriptJson Json
+  /// 已作答题目的轨迹 [{ questionId, strategy, questionText, optionA, optionB, level }]
+  answersJson    Json
+  /// 已用策略 key 序列（防连用）
+  strategiesJson Json
+  /// 已追问次数（need_info），上限 2
+  clarifyCount   Int             @default(0)
+  /// finished 报告字段
+  awakeningQuote String?         @db.Text
+  tendency       String?
+  analysis       String?         @db.Text
+  actionAdvice   String?         @db.Text
+  requestId      String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([requestId])
+}
+
+enum InsightV2Status {
+  need_info
+  questioning
+  finished
+}
+
+/// Prompt 运行时覆盖（debug 调参用，见 docs/tasks/004 + ADR-005）。
+/// 仅在 INSIGHT_V2_PROMPT_OVERRIDE_ENABLED=true 时生效；为空/未配置时回退到代码内置默认。
+model PromptOverride {
+  key       String   @id
+  content   String   @db.Text
+  updatedAt DateTime @updatedAt
+  updatedBy String?
 }
 
 model AgentProfile {

@@ -1,0 +1,1 @@
+ALTER TABLE `decisionSessions` MODIFY COLUMN `answers` text NOT NULL;

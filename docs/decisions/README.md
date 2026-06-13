@@ -20,3 +20,4 @@
 | 002 | 后端：NestJS + Prisma + PostgreSQL + Redis | 已接受 |
 | 003 | 客户端：MVP WebView + H5，正式端 Flutter | 已接受 |
 | 004 | AI Chat：控制平面/执行平面与初版可演进 | 已接受 |
+| 005 | 核心链路升级为动态问卷状态机 + 有状态会话端点 | 已采纳并实现 |

@@ -8,14 +8,16 @@
 
 首版建议用最简单、可排错的方式。**数据库有两种常见摆法**（二选一即可）：
 
-| 组件 | 阿里云产品 | 作用 |
-|------|------------|------|
-| 后端运行 | ECS | 跑 Node.js/NestJS 进程 |
-| 数据库（验证 / 省钱） | **同一台 ECS 上安装 PostgreSQL** | 与后端同机，仅本机或内网连库，适合先跑通链路与联调 |
-| 数据库（正式上线推荐） | **RDS PostgreSQL** | 托管库、备份与高可用由云侧负责，应用仍部署在 ECS |
-| HTTPS 入口 | Nginx + 免费证书/阿里云证书 | 把公网域名反代到本机 `127.0.0.1:3000` |
-| AI 模型 | 火山方舟 / Doubao | 通过 OpenAI-compatible API 调用 |
-| Redis | 暂不需要 | 当前代码未连接 Redis |
+
+| 组件           | 阿里云产品                      | 作用                          |
+| ------------ | -------------------------- | --------------------------- |
+| 后端运行         | ECS                        | 跑 Node.js/NestJS 进程         |
+| 数据库（验证 / 省钱） | **同一台 ECS 上安装 PostgreSQL** | 与后端同机，仅本机或内网连库，适合先跑通链路与联调   |
+| 数据库（正式上线推荐）  | **RDS PostgreSQL**         | 托管库、备份与高可用由云侧负责，应用仍部署在 ECS  |
+| HTTPS 入口     | Nginx + 免费证书/阿里云证书         | 把公网域名反代到本机 `127.0.0.1:3000` |
+| AI 模型        | 火山方舟 / Doubao              | 通过 OpenAI-compatible API 调用 |
+| Redis        | 暂不需要                       | 当前代码未连接 Redis               |
+
 
 可以先在 ECS 上 **本机 PostgreSQL** 完成部署与接口验证，确认无误后再 **购买 RDS、迁移数据、把 `DATABASE_URL` 改为 RDS 内网地址**（步骤见 **第 2.4 节**）。不必为了第一次上线就必须买 RDS。
 
@@ -57,7 +59,7 @@ DATABASE_URL="postgresql://favorme_app:<密码>@<RDS内网地址>:5432/favorme?s
 
 ### 2.3 ECS 本机 PostgreSQL（验证 / MVP）
 
-在 **已有 ECS** 上直接安装 PostgreSQL，与 Nest 后端同机部署，用 **`127.0.0.1`** 连接即可，无需 RDS。适合：先验证 `DATABASE_URL`、迁移、`/v1/health`、Phase 1 接口，再上 RDS。
+在 **已有 ECS** 上直接安装 PostgreSQL，与 Nest 后端同机部署，用 `**127.0.0.1`** 连接即可，无需 RDS。适合：先验证 `DATABASE_URL`、迁移、`/v1/health`、Phase 1 接口，再上 RDS。
 
 **安全注意**
 
@@ -81,7 +83,7 @@ sudo -u postgres psql -c "CREATE USER favorme_app WITH PASSWORD '你的强密码
 sudo -u postgres psql -c "CREATE DATABASE favorme OWNER favorme_app;"
 ```
 
-如发行版默认只允许 peer 连接，需本机密码认证时，编辑 **`/etc/postgresql/*/main/pg_hba.conf`**（路径因版本略不同），确保存在一行允许本机 TCP 密码登录，例如：
+如发行版默认只允许 peer 连接，需本机密码认证时，编辑 `**/etc/postgresql/*/main/pg_hba.conf**`（路径因版本略不同），确保存在一行允许本机 TCP 密码登录，例如：
 
 ```text
 host    favorme    favorme_app    127.0.0.1/32    scram-sha-256
@@ -93,7 +95,7 @@ host    favorme    favorme_app    127.0.0.1/32    scram-sha-256
 sudo systemctl reload postgresql
 ```
 
-**`DATABASE_URL`（本机验证）**
+`**DATABASE_URL`（本机验证）**
 
 ```env
 DATABASE_URL="postgresql://favorme_app:你的强密码@127.0.0.1:5432/favorme?schema=public"
@@ -110,12 +112,12 @@ DATABASE_URL="postgresql://favorme_app:你的强密码@127.0.0.1:5432/favorme?sc
 1. 按 **第 2.2 节** 创建 RDS、数据库、账号与白名单（ECS 内网可访问 RDS）。
 2. **停机或短时间停止写入**（避免迁移中途产生新数据；若可接受短暂不一致可跳过）。
 3. 在 ECS 上对旧库做逻辑备份，例如：
-   ```bash
+  ```bash
    sudo -u postgres pg_dump -Fc -d favorme -f /tmp/favorme.dump
-   ```
+  ```
    或使用 `pg_dump` 以 **plain SQL** 导出，再用 `psql` 导入 RDS（具体以 RDS 控制台「连接信息」为准）。
 4. 将备份恢复到 RDS（可用 `pg_restore` 或控制台提供的迁移工具；大库建议走阿里云数据迁移产品）。
-5. 修改 `backend/.env` 中 **`DATABASE_URL`** 为 RDS 内网连接串，执行 `npm run prisma:deploy`（若 RDS 已是同一 schema，有时仅需校验；以迁移策略为准）。
+5. 修改 `backend/.env` 中 `**DATABASE_URL`** 为 RDS 内网连接串，执行 `npm run prisma:deploy`（若 RDS 已是同一 schema，有时仅需校验；以迁移策略为准）。
 6. `sudo systemctl restart favorme-backend`，用 **第 7.1 节** 健康检查与 Phase 1 curl 再验一遍。
 
 若本机库仅有测试数据，也可以 **直接在 RDS 上空库执行 `npm run prisma:deploy`**，不再迁移旧数据。
@@ -147,18 +149,25 @@ DATABASE_URL="postgresql://favorme_app:<密码>@<RDS内网地址>:5432/favorme?s
 AI_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
 AI_API_KEY=<你的 ARK_API_KEY>
 AI_MODEL=doubao-seed-1-8-251228
+
+# 点醒 Prompt 运行时调参开关（仅内网/开发调参用，生产保持关闭/不设置）。
+# 设为 true 后，客户端 debug 模式可上传覆盖 System Prompt，后端运行时即时生效。
+# INSIGHT_V2_PROMPT_OVERRIDE_ENABLED=false
 ```
 
 变量含义：
 
-| 变量 | 必填 | 含义 |
-|------|------|------|
-| `PORT` | 否 | 后端监听端口，默认 `3000` |
-| `API_TOKEN` | 是 | App/调试脚本访问业务接口时的 Bearer token |
-| `DATABASE_URL` | 是 | PostgreSQL 连接串，Prisma 用它访问数据库 |
-| `AI_BASE_URL` | 是 | OpenAI-compatible API root；火山方舟为 `https://ark.cn-beijing.volces.com/api/v3` |
-| `AI_API_KEY` | 是 | 火山官网示例中的 `ARK_API_KEY`，填到这个统一变量里 |
-| `AI_MODEL` | 是 | 当前模型：`doubao-seed-1-8-251228` |
+
+| 变量             | 必填  | 含义                                                                          |
+| -------------- | --- | --------------------------------------------------------------------------- |
+| `PORT`         | 否   | 后端监听端口，默认 `3000`                                                            |
+| `API_TOKEN`    | 是   | App/调试脚本访问业务接口时的 Bearer token                                               |
+| `DATABASE_URL` | 是   | PostgreSQL 连接串，Prisma 用它访问数据库                                               |
+| `AI_BASE_URL`  | 是   | OpenAI-compatible API root；火山方舟为 `https://ark.cn-beijing.volces.com/api/v3` |
+| `AI_API_KEY`   | 是   | 火山官网示例中的 `ARK_API_KEY`，填到这个统一变量里                                            |
+| `AI_MODEL`     | 是   | 当前模型：`doubao-seed-1-8-251228`                                               |
+| `INSIGHT_V2_PROMPT_OVERRIDE_ENABLED` | 否 | 默认关闭。设为 `true` 时开放 `PUT/DELETE /v1/insight-v2/prompt`，允许 debug 客户端运行时覆盖 System Prompt。**生产环境保持关闭。** |
+
 
 ## 4. ECS 首次部署
 
@@ -502,13 +511,14 @@ sudo systemctl status favorme-backend
 
 ## 10. 上线前检查清单
 
-- [ ] ECS 安全组只开放必要端口：`22`、`80`、`443`（**不要**对 `0.0.0.0/0` 开放 `5432`）
-- [ ] Nginx 已启用 HTTPS
-- [ ] `backend/.env` 权限受控，密钥未提交 Git
-- [ ] 若已使用 **RDS**：已配置备份策略；白名单只允许 ECS 或可信来源
-- [ ] 若暂用 **ECS 本机 PostgreSQL**：已至少有一次可恢复的备份方案（如 `pg_dump` 定时任务或快照策略）
-- [ ] `npm run prisma:deploy` 已成功
-- [ ] `GET /v1/health` 返回 database up
-- [ ] Phase 1 golden-path curl 已通过
-- [ ] 火山方舟 API Key 可用且额度正常
-- [ ] `01-REVIEW.md` 中的 submit 快照防篡改风险已接受或已修复
+- ECS 安全组只开放必要端口：`22`、`80`、`443`（**不要**对 `0.0.0.0/0` 开放 `5432`）
+- Nginx 已启用 HTTPS
+- `backend/.env` 权限受控，密钥未提交 Git
+- 若已使用 **RDS**：已配置备份策略；白名单只允许 ECS 或可信来源
+- 若暂用 **ECS 本机 PostgreSQL**：已至少有一次可恢复的备份方案（如 `pg_dump` 定时任务或快照策略）
+- `npm run prisma:deploy` 已成功
+- `GET /v1/health` 返回 database up
+- Phase 1 golden-path curl 已通过
+- 火山方舟 API Key 可用且额度正常
+- `01-REVIEW.md` 中的 submit 快照防篡改风险已接受或已修复
+

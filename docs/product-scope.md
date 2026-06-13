@@ -1,6 +1,8 @@
 # 产品范围（FavorMe）
 
 > **状态：已更新（会议纪要同步）**（2026-05-09，与 [`architecture.md`](architecture.md)、[`tech-stack.md`](tech-stack.md) 同步）
+>
+> **⚠️ 主线已升级到「点醒 · 动态问卷」（PRD V2.0，2026-06-13）**：核心链路从「固定三问」升级为**有状态动态问卷**——逐题实时生成、**动态 3–5 道收题**、**五级量表**作答、结构化「点醒报告」（金句 / 倾向 / 分析 / 轨迹 / 行动建议）、会话落库与历史复盘。权威实现与契约见 [`modules/insight-v2-dynamic-questionnaire.md`](modules/insight-v2-dynamic-questionnaire.md) 与 [ADR-005](decisions/005-dynamic-questionnaire-state-machine.md)。下文「三问」描述为历史阶段，作为背景保留。
 
 ## 1. 一句话
 

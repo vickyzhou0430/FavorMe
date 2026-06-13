@@ -1,0 +1,241 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-amber: var(--amber);
+}
+
+:root {
+  /* 深夜诊室主题 — Dark Therapy Room */
+  --radius: 0.5rem;
+  --background: oklch(0.09 0.005 285);
+  --foreground: oklch(0.93 0.008 65);
+  --card: oklch(0.12 0.006 285);
+  --card-foreground: oklch(0.93 0.008 65);
+  --popover: oklch(0.12 0.006 285);
+  --popover-foreground: oklch(0.93 0.008 65);
+  /* 琥珀金作为主色 */
+  --primary: oklch(0.75 0.15 75);
+  --primary-foreground: oklch(0.09 0.005 285);
+  --secondary: oklch(0.15 0.006 285);
+  --secondary-foreground: oklch(0.75 0.008 65);
+  --muted: oklch(0.15 0.006 285);
+  --muted-foreground: oklch(0.55 0.01 65);
+  --accent: oklch(0.75 0.15 75);
+  --accent-foreground: oklch(0.09 0.005 285);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.22 0.006 285);
+  --input: oklch(0.16 0.006 285);
+  --ring: oklch(0.75 0.15 75);
+  /* 自定义琥珀色 */
+  --amber: #E8A84C;
+  --amber-glow: rgba(232, 168, 76, 0.15);
+  --amber-glow-strong: rgba(232, 168, 76, 0.25);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Noto Sans SC', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    font-family: 'Noto Serif SC', serif;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    max-width: 480px;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  /* 琥珀金光晕效果 */
+  .amber-glow {
+    box-shadow: 0 0 20px var(--amber-glow), 0 0 40px var(--amber-glow);
+  }
+
+  .amber-glow-text {
+    text-shadow: 0 0 30px rgba(232, 168, 76, 0.4);
+  }
+
+  /* 打字机光标 */
+  .typing-cursor::after {
+    content: '|';
+    color: var(--amber);
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* 选项卡片 */
+  .option-card {
+    transition: all 180ms cubic-bezier(0.23, 1, 0.32, 1);
+    border: 1px solid oklch(0.22 0.006 285);
+    background: oklch(0.12 0.006 285);
+  }
+
+  .option-card:hover {
+    transform: translateY(-2px);
+    border-color: oklch(0.75 0.15 75 / 0.5);
+    background: oklch(0.14 0.006 285);
+  }
+
+  .option-card:active {
+    transform: scale(0.98);
+  }
+
+  .option-card.selected {
+    border-color: var(--amber);
+    background: oklch(0.14 0.008 75);
+    box-shadow: 0 0 16px var(--amber-glow);
+  }
+
+  /* 进度点 */
+  .progress-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: oklch(0.3 0.006 285);
+    transition: all 300ms ease;
+  }
+
+  .progress-dot.active {
+    background: var(--amber);
+    box-shadow: 0 0 8px var(--amber-glow-strong);
+  }
+
+  .progress-dot.done {
+    background: oklch(0.5 0.1 75);
+  }
+
+  /* 细线分隔 */
+  .thin-divider {
+    height: 0.5px;
+    background: linear-gradient(90deg, transparent, oklch(0.3 0.006 285), transparent);
+  }
+
+  /* 页面过渡 */
+  .page-enter {
+    animation: pageEnter 250ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  }
+
+  @keyframes pageEnter {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* 淡入动画 */
+  .fade-in {
+    animation: fadeIn 400ms ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* 主按钮 */
+  .btn-primary {
+    background: var(--amber);
+    color: oklch(0.09 0.005 285);
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 500;
+    transition: all 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .btn-primary:hover {
+    background: oklch(0.8 0.15 75);
+    box-shadow: 0 4px 20px var(--amber-glow-strong);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.97);
+  }
+
+  /* 文字渐入 */
+  @keyframes textReveal {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .text-reveal {
+    animation: textReveal 500ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  }
+
+  /* 加载动画 */
+  @keyframes pulse-amber {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  .loading-dot {
+    animation: pulse-amber 1.4s ease-in-out infinite;
+  }
+
+  .loading-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .loading-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+}

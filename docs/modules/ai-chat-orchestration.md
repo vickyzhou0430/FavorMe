@@ -1,5 +1,7 @@
 # 模块：AI 心理洞察三问编排（控制平面 + 执行占位）
 
+> **⚠️ 已被动态问卷取代**：产品主线 2026-06-13 升级为 [`insight-v2-dynamic-questionnaire.md`](insight-v2-dynamic-questionnaire.md)（`/v1/insight-v2/*`，有状态状态机）。本文描述的「固定三问」`/v1/insight/*` 链路**保留兼容、标记 deprecated**，新功能请参考 v2 模块文档。
+>
 > **状态**：草案，已按 2026-05-09 会议纪要更新，随实现与 ADR-004 持续演进。  
 > 鉴权与用户表的**权威细节**以后续 [`auth.md`](auth.md) 为准；本文列出 chat 主链路的**表名与接口**以便联调。
 

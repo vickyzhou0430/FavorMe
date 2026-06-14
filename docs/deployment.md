@@ -464,6 +464,76 @@ curl -s -X POST "$API_BASE_URL/v1/insight/submit" \
 
 期望返回非空 `conclusion`。真实联调时，`questions` 应使用上一步接口实际返回的内容。
 
+### 7.3 查看数据库数据（SSH 隧道 + 本机工具）
+
+后端与 PostgreSQL **同在 ECS**（**第 2.3 节**）时，库通常只监听 `127.0.0.1:5432`，**安全组不对公网开放 5432**。从本机 Mac / Windows 查看数据时，推荐用 **SSH 端口转发**，把 ECS 上的数据库映射到本机，再用图形客户端或 Prisma Studio 连接。
+
+**适用**：ECS 本机 PostgreSQL。若已迁 **RDS**，也可先 SSH 到 ECS，再把隧道指向 RDS 内网地址（见下方「RDS 变体」）。
+
+#### 7.3.1 建立 SSH 隧道
+
+在本机终端执行（保持该终端**不要关闭**）：
+
+```bash
+ssh -L 15432:127.0.0.1:5432 <SSH用户>@<ECS公网IP>
+```
+
+- `15432`：本机端口，可改成其他未被占用的端口。
+- `127.0.0.1:5432`：ECS **内部** PostgreSQL 地址，与 `backend/.env` 中 `DATABASE_URL` 一致。
+- `<SSH用户>`：如 `root`、`ubuntu`，按实例实际登录用户填写。
+
+**RDS 变体**（库在 RDS、仅 ECS 能访问内网时）：
+
+```bash
+ssh -L 15432:<RDS内网地址>:5432 <SSH用户>@<ECS公网IP>
+```
+
+#### 7.3.2 本机图形客户端（TablePlus / DBeaver / pgAdmin）
+
+隧道建立后，在本机新建 PostgreSQL 连接：
+
+| 字段 | 值 |
+| ---- | -- |
+| Host | `127.0.0.1` |
+| Port | `15432`（与上一步 `-L` 左侧端口一致） |
+| Database | `favorme` |
+| User | `favorme_app`（或与 `DATABASE_URL` 中一致） |
+| Password | ECS 上 `backend/.env` 里 `DATABASE_URL` 的密码 |
+
+密码勿提交 Git。在 ECS 上查看连接串示例：
+
+```bash
+grep DATABASE_URL /opt/favorme/backend/.env
+```
+
+（路径按你实际部署目录调整，如 `~/FavorMe/backend/.env`。）
+
+Prisma 表名为 PascalCase，在 SQL 客户端中查询时需加双引号，例如：
+
+```sql
+SELECT * FROM "User" LIMIT 20;
+SELECT * FROM "Conversation" ORDER BY "createdAt" DESC LIMIT 20;
+SELECT * FROM "Message" ORDER BY "createdAt" DESC LIMIT 20;
+SELECT * FROM "AgentProfile";
+```
+
+#### 7.3.3 本机 Prisma Studio（可选）
+
+本机已克隆仓库且装有 Node 时，可在隧道保持开启的情况下：
+
+```bash
+cd backend
+DATABASE_URL="postgresql://favorme_app:<密码>@127.0.0.1:15432/favorme?schema=public" npm run prisma:studio
+```
+
+浏览器打开 `http://localhost:5555` 浏览、编辑各表。`<密码>` 与 ECS `DATABASE_URL` 一致；含 `@ # %` 等特殊字符时须 [URL 编码](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding)。
+
+#### 7.3.4 安全注意
+
+- **不要**在安全组对 `0.0.0.0/0` 开放 `5432`；仅通过 SSH（端口 `22`）建立隧道访问库。
+- 隧道终端关闭后，本机客户端会断连，需重新执行 `ssh -L ...`。
+- 生产环境避免在 ECS 上对 `0.0.0.0` 监听 Prisma Studio；优先本机隧道 + 本机 Studio。
+
 ## 8. 后续更新部署
 
 代码更新后：

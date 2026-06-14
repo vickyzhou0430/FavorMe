@@ -182,9 +182,11 @@ npm run start:dev
 | `npm run prisma:migrate` | 开发环境 `migrate dev`（改 schema 时用） |
 | `npm run prisma:deploy` | 部署/CI `migrate deploy` |
 | `npm run prisma:seed` | 写入默认 `agent_profiles` |
-| `npm run prisma:studio` | 图形浏览数据 |
+| `npm run prisma:studio` | 图形浏览数据（本地开发） |
 
 **权威 schema**：[`prisma/schema.prisma`](prisma/schema.prisma)（与模块文档中表名一一对应）。
+
+**已部署到阿里云 ECS、库在同机 PostgreSQL**：数据库不对外暴露 `5432`；从本机查看数据请用 SSH 隧道 + TablePlus / Prisma Studio，步骤见 [`../docs/deployment.md`](../docs/deployment.md) **第 7.3 节**。
 
 ## 与任务单
 

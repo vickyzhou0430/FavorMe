@@ -23,6 +23,15 @@ const Map<String, String> _kPromptKeyLabels = <String, String>{
   InsightV2PromptKey.profileAugmentation: '个性化增强 (profile augmentation)',
 };
 
+/// augmentation 模板里运行时被替换的占位符。
+/// 保存前若一个都没有，几乎一定是误删，需用户确认。
+const List<String> _kProfilePlaceholders = <String>[
+  '{{age}}',
+  '{{gender}}',
+  '{{zodiac}}',
+  '{{mbti}}',
+];
+
 class _PromptDebugScreenState extends State<PromptDebugScreen> {
   final TextEditingController _controller = TextEditingController();
   bool _loading = true;
@@ -83,6 +92,13 @@ class _PromptDebugScreenState extends State<PromptDebugScreen> {
       _toast('内容不能为空');
       return;
     }
+    if (_selectedKey == InsightV2PromptKey.profileAugmentation &&
+        !_hasAnyPlaceholder(content)) {
+      final confirmed = await _confirmMissingPlaceholders();
+      if (confirmed != true) {
+        return;
+      }
+    }
     setState(() => _saving = true);
     try {
       final info = await widget.client.updatePrompt(content, key: _selectedKey);
@@ -132,6 +148,37 @@ class _PromptDebugScreenState extends State<PromptDebugScreen> {
       _controller.text = info.defaultPrompt;
       _toast('已把内置默认载入编辑框（未上传）');
     }
+  }
+
+  bool _hasAnyPlaceholder(String content) {
+    return _kProfilePlaceholders.any(content.contains);
+  }
+
+  Future<bool?> _confirmMissingPlaceholders() {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('未检测到占位符'),
+          content: const Text(
+            'augmentation 文本里没有 {{age}} / {{gender}} / {{zodiac}} / {{mbti}} '
+            '中的任何一个，运行时将无法把档案值填进去，会以字面量送进 LLM。\n\n'
+            '确定继续上传吗？',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
+              child: const Text('仍然上传'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _toast(String message) {

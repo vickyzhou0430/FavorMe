@@ -16,6 +16,14 @@ model User {
   email     String?  @unique
   deviceId  String?  @unique
 
+  /// 个人档案（见 ADR-006）：生日/性别/星座/MBTI 全部可空；
+  /// useProfileInPrompt 控制是否在 insight-v2 注入 augmentation prompt。
+  birthday           DateTime? @db.Date
+  gender             String?
+  zodiac             String?
+  mbti               String?
+  useProfileInPrompt Boolean   @default(false)
+
   conversations     Conversation[]
   llmInvocations    LlmInvocation[]
   insightRounds     InsightRound[]

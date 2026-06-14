@@ -15,6 +15,11 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { PromptService } from '../prompt/prompt.service';
 import { normalizeAndValidateRawQuestion } from '../insight/validators/question-input.validator';
+import {
+  type ProfileGender,
+  type ProfileMbti,
+  type ProfileZodiac,
+} from '../users/profile.constants';
 import { StartSessionDto } from './dto/start-session.dto';
 import { SubmitTurnDto } from './dto/submit-turn.dto';
 import {
@@ -34,6 +39,14 @@ import {
   type InsightV2Level,
   type InsightV2StrategyKey,
 } from './prompts/insight-v2.prompt';
+import {
+  INSIGHT_V2_PROFILE_PROMPT_KEY,
+  INSIGHT_V2_PROFILE_PROMPT_SEPARATOR,
+  INSIGHT_V2_PROFILE_PROMPT_TEMPLATE,
+  computeAge,
+  hasAnyProfileSignal,
+  renderProfileAugmentation,
+} from './prompts/insight-v2-profile.prompt';
 
 export interface InsightV2RequestContext {
   requestId: string;
@@ -103,16 +116,18 @@ export class InsightV2Service {
       context.requestId,
     );
     const userId = await this.ensureUserId(context.deviceId);
+    const profileAugmentation = await this.loadProfileAugmentation(userId);
 
     const transcript: ChatMessage[] = [
       { role: 'user', content: buildInitialUserMessage(dilemma) },
     ];
     const strategies: InsightV2StrategyKey[] = [];
 
-    const parsed = await this.runTurn(transcript, {
-      strategies,
-      clarifyCount: 0,
-    });
+    const parsed = await this.runTurn(
+      transcript,
+      { strategies, clarifyCount: 0 },
+      profileAugmentation,
+    );
 
     const assistantContent = JSON.stringify(parsed);
     transcript.push({ role: 'assistant', content: assistantContent });
@@ -145,6 +160,7 @@ export class InsightV2Service {
     context: InsightV2RequestContext,
   ): Promise<ClientTurn> {
     const userId = await this.ensureUserId(context.deviceId);
+    const profileAugmentation = await this.loadProfileAugmentation(userId);
     const session = await this.loadSession(sessionId, userId);
 
     if (session.status === 'finished') {
@@ -218,7 +234,11 @@ export class InsightV2Service {
       });
     }
 
-    const parsed = await this.runTurn(transcript, { strategies, clarifyCount });
+    const parsed = await this.runTurn(
+      transcript,
+      { strategies, clarifyCount },
+      profileAugmentation,
+    );
     transcript.push({ role: 'assistant', content: JSON.stringify(parsed) });
     if (parsed.status === 'questioning') {
       strategies.push(parsed.question.strategy);
@@ -352,6 +372,7 @@ export class InsightV2Service {
   private async runTurn(
     baseMessages: ChatMessage[],
     state: { strategies: InsightV2StrategyKey[]; clarifyCount: number },
+    profileAugmentation: string | null,
   ): Promise<ParsedTurn> {
     const askedCount = state.strategies.length;
     const lastStrategy = state.strategies[state.strategies.length - 1];
@@ -359,7 +380,7 @@ export class InsightV2Service {
     const canFinish =
       askedCount >= INSIGHT_V2_MIN_QUESTIONS && this.hasDeepStrategy(state.strategies);
 
-    let parsed = await this.callModel(baseMessages);
+    let parsed = await this.callModel(baseMessages, undefined, profileAugmentation);
     const hint = this.correctiveHint(parsed, {
       askedCount,
       mustFinish,
@@ -369,7 +390,7 @@ export class InsightV2Service {
     });
 
     if (hint) {
-      parsed = await this.callModel(baseMessages, hint);
+      parsed = await this.callModel(baseMessages, hint, profileAugmentation);
       // 二次仍越界则记录告警，按模型结果放行（避免死循环）。
       const stillWrong = this.correctiveHint(parsed, {
         askedCount,
@@ -428,16 +449,20 @@ export class InsightV2Service {
 
   private async callModel(
     baseMessages: ChatMessage[],
-    hint?: string,
+    hint: string | undefined,
+    profileAugmentation: string | null,
   ): Promise<ParsedTurn> {
     const messages = hint
       ? [...baseMessages, { role: 'user' as const, content: hint }]
       : baseMessages;
 
-    const system = await this.prompts.getEffectivePrompt(
+    const baseSystem = await this.prompts.getEffectivePrompt(
       INSIGHT_V2_SYSTEM_PROMPT_KEY,
       INSIGHT_V2_SYSTEM_PROMPT,
     );
+    const system = profileAugmentation
+      ? `${baseSystem}${INSIGHT_V2_PROFILE_PROMPT_SEPARATOR}${profileAugmentation}`
+      : baseSystem;
 
     const completion = await this.llm.completeChat({
       system,
@@ -647,6 +672,54 @@ export class InsightV2Service {
       return [];
     }
     return value as TrajectoryItem[];
+  }
+
+  /**
+   * 读取用户档案 + 渲染 augmentation。
+   * 返回 null 表示不应注入（开关关闭 / 档案全空 / augmentation 模板被覆盖为空）。
+   * 见 ADR-006：注入仅影响生成内容，不动状态机。
+   */
+  private async loadProfileAugmentation(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        useProfileInPrompt: true,
+        birthday: true,
+        gender: true,
+        zodiac: true,
+        mbti: true,
+      },
+    });
+    if (!user || !user.useProfileInPrompt) {
+      return null;
+    }
+    const profile = {
+      age: computeAge(user.birthday ? user.birthday.toISOString().slice(0, 10) : null),
+      gender: user.gender as ProfileGender | null,
+      zodiac: user.zodiac as ProfileZodiac | null,
+      mbti: user.mbti as ProfileMbti | null,
+    };
+    if (!hasAnyProfileSignal(profile)) {
+      return null;
+    }
+    const template = await this.prompts.getEffectivePrompt(
+      INSIGHT_V2_PROFILE_PROMPT_KEY,
+      INSIGHT_V2_PROFILE_PROMPT_TEMPLATE,
+    );
+    const rendered = renderProfileAugmentation(profile, template);
+    this.logger.log(
+      JSON.stringify({
+        event: 'insightV2.profile.applied',
+        userId,
+        fields: {
+          age: profile.age !== null,
+          gender: !!profile.gender,
+          zodiac: !!profile.zodiac,
+          mbti: !!profile.mbti,
+        },
+      }),
+    );
+    return rendered;
   }
 
   private async ensureUserId(deviceId?: string): Promise<string> {

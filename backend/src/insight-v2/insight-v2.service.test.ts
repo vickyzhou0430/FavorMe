@@ -56,10 +56,19 @@ interface StoredSession {
   requestId: string;
 }
 
+interface ProfileFixture {
+  useProfileInPrompt: boolean;
+  birthday: Date | null;
+  gender: string | null;
+  zodiac: string | null;
+  mbti: string | null;
+}
+
 function createHarness(
   llmResponses: string[],
   initialSession?: Partial<StoredSession>,
   promptOverride?: string,
+  profile?: ProfileFixture,
 ) {
   const calls: ChatMessage[][] = [];
   const systems: string[] = [];
@@ -97,7 +106,21 @@ function createHarness(
     : null;
 
   const prisma = {
-    user: { async upsert() { return { id: 'user-1' }; } },
+    user: {
+      async upsert() { return { id: 'user-1' }; },
+      async findUnique() {
+        // 测试默认：未开启 profile 注入，保证现有用例 system prompt 与原行为一致。
+        return (
+          profile ?? {
+            useProfileInPrompt: false,
+            birthday: null,
+            gender: null,
+            zodiac: null,
+            mbti: null,
+          }
+        );
+      },
+    },
     insightV2Session: {
       async create({ data }: { data: Record<string, unknown> }) {
         stored = { id: 'sess-1', createdAt: new Date(), ...(data as object) } as StoredSession;
@@ -259,6 +282,48 @@ describe('InsightV2Service.submitTurn — dynamic collection guards', () => {
     const turn = await service.submitTurn('sess-1', { action: 'reply', replyText: '补充信息' }, ctx);
     assert.equal(turn.status, 'questioning');
     assert.equal(calls.length, 2);
+  });
+});
+
+describe('profile augmentation injection', () => {
+  test('skips augmentation when useProfileInPrompt=false', async () => {
+    const { service, systems } = createHarness([questioning('loss_aversion')]);
+    await service.startSession({ dilemma: DILEMMA }, ctx);
+    assert.equal(systems.length, 1);
+    assert.ok(!systems[0].includes('个性化增强'), 'augmentation should not be injected');
+  });
+
+  test('skips augmentation when toggle on but all fields empty', async () => {
+    const { service, systems } = createHarness(
+      [questioning('loss_aversion')],
+      undefined,
+      undefined,
+      { useProfileInPrompt: true, birthday: null, gender: null, zodiac: null, mbti: null },
+    );
+    await service.startSession({ dilemma: DILEMMA }, ctx);
+    assert.ok(!systems[0].includes('个性化增强'));
+  });
+
+  test('injects augmentation with rendered profile when toggle on + any field set', async () => {
+    const { service, systems } = createHarness(
+      [questioning('loss_aversion')],
+      undefined,
+      undefined,
+      {
+        useProfileInPrompt: true,
+        birthday: new Date('1998-03-15T00:00:00Z'),
+        gender: 'female',
+        zodiac: 'pisces',
+        mbti: 'INFJ',
+      },
+    );
+    await service.startSession({ dilemma: DILEMMA }, ctx);
+    const sys = systems[0];
+    assert.ok(sys.includes('个性化增强'), 'augmentation header present');
+    assert.ok(sys.includes('INFJ'), 'MBTI rendered');
+    assert.ok(sys.includes('双鱼座'), 'zodiac label rendered');
+    assert.ok(sys.includes('女'), 'gender label rendered');
+    assert.match(sys, /\d+ 岁/, 'age computed from birthday');
   });
 });
 

@@ -15,3 +15,6 @@
 | 000 | [000-repo-layout-and-docs.md](000-repo-layout-and-docs.md) | 已完成 |
 | 001 | [001-backend-initialization.md](001-backend-initialization.md) | 已完成 |
 | 002 | [002-ai-insight-question-generation.md](002-ai-insight-question-generation.md) | 已完成（文档定义） |
+| 003 | [003-phase1-api-auth-headers.md](003-phase1-api-auth-headers.md) | 已完成 |
+| 004 | [004-dianxing-dynamic-questionnaire.md](004-dianxing-dynamic-questionnaire.md) | 实现完成（待联调） |
+| 005 | [005-user-profile-personalization.md](005-user-profile-personalization.md) | 实现完成（待联调 + A/B 评测） |

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../insight/widgets/bottom_question_input.dart';
 import '../insight/widgets/loading_error_card.dart';
+import '../profile/profile_api_client.dart';
+import '../profile/profile_screen.dart';
 import 'debug/prompt_debug_screen.dart';
 import 'history/insight_v2_history_screen.dart';
 import 'insight_v2_api_client.dart';
@@ -21,10 +23,14 @@ class InsightV2Screen extends StatefulWidget {
     super.key,
     required this.viewModel,
     required this.client,
+    this.profileClient,
   });
 
   final InsightV2ViewModel viewModel;
   final InsightV2Client client;
+
+  /// 个人档案入口；为空时 AppBar 不显示档案按钮（测试中可省）。
+  final ProfileClient? profileClient;
 
   @override
   State<InsightV2Screen> createState() => _InsightV2ScreenState();
@@ -75,6 +81,16 @@ class _InsightV2ScreenState extends State<InsightV2Screen> {
     );
   }
 
+  void _openProfile() {
+    final client = widget.profileClient;
+    if (client == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ProfileScreen(client: client),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -102,6 +118,8 @@ class _InsightV2ScreenState extends State<InsightV2Screen> {
                         _Header(
                           onHistory: _openHistory,
                           onDebug: _promptDebugEnabled ? _openPromptDebug : null,
+                          onProfile:
+                              widget.profileClient == null ? null : _openProfile,
                         ),
                         Expanded(child: _buildBody(vm)),
                         const SizedBox(height: 16),
@@ -200,10 +218,15 @@ class _InsightV2ScreenState extends State<InsightV2Screen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.onHistory, this.onDebug});
+  const _Header({
+    required this.onHistory,
+    this.onDebug,
+    this.onProfile,
+  });
 
   final VoidCallback onHistory;
   final VoidCallback? onDebug;
+  final VoidCallback? onProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -215,6 +238,13 @@ class _Header extends StatelessWidget {
             onPressed: onDebug,
             tooltip: 'Prompt 调参',
             icon: const Icon(Icons.tune_rounded, color: AppColors.textSecondary),
+          ),
+        if (onProfile != null)
+          IconButton(
+            onPressed: onProfile,
+            tooltip: '个人档案',
+            icon: const Icon(Icons.person_outline_rounded,
+                color: AppColors.textSecondary),
           ),
         IconButton(
           onPressed: onHistory,

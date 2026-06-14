@@ -18,3 +18,4 @@
 | 003 | [003-phase1-api-auth-headers.md](003-phase1-api-auth-headers.md) | 已完成 |
 | 004 | [004-dianxing-dynamic-questionnaire.md](004-dianxing-dynamic-questionnaire.md) | 实现完成（待联调） |
 | 005 | [005-user-profile-personalization.md](005-user-profile-personalization.md) | 实现完成（待联调 + A/B 评测） |
+| 006 | [006-device-id-hardware-fallback.md](006-device-id-hardware-fallback.md) | 实现完成（待真机回归） |

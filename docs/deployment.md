@@ -491,6 +491,8 @@ sudo systemctl status favorme-backend
 
 数据库迁移一旦执行，不能简单用 `git checkout` 回滚数据库结构；生产环境执行迁移前要确认备份。
 
+> **关于点醒 Prompt 调参（可选）**：`INSIGHT_V2_PROMPT_OVERRIDE_ENABLED` 默认关闭即可，生产**保持关闭**。仅当需要让 debug 客户端运行时覆盖 System Prompt（不重新部署即可调参）时，才在 `backend/.env` 设 `INSIGHT_V2_PROMPT_OVERRIDE_ENABLED=true` 并 `sudo systemctl restart favorme-backend`。改完调参后建议改回关闭。详见 [`modules/insight-v2-dynamic-questionnaire.md`](modules/insight-v2-dynamic-questionnaire.md)。
+
 ## 9. Docker 说明
 
 你之前部署 OpenClaw 用 Docker，是因为它通常已经提供完整镜像或 `Dockerfile`。当前 FavorMe 仓库的 `docker-compose.yml` 只用于**开发机**本地依赖：

@@ -40,11 +40,11 @@ abstract interface class InsightV2Client {
 
   Future<InsightV2HistoryPage> listSessions({int? limit, String? cursor});
 
-  Future<InsightV2PromptInfo> getPrompt();
+  Future<InsightV2PromptInfo> getPrompt({String? key});
 
-  Future<InsightV2PromptInfo> updatePrompt(String content);
+  Future<InsightV2PromptInfo> updatePrompt(String content, {String? key});
 
-  Future<InsightV2PromptInfo> resetPrompt();
+  Future<InsightV2PromptInfo> resetPrompt({String? key});
 }
 
 class InsightV2ApiClient implements InsightV2Client {
@@ -139,26 +139,38 @@ class InsightV2ApiClient implements InsightV2Client {
   }
 
   @override
-  Future<InsightV2PromptInfo> getPrompt() async {
-    final json = await _send(method: 'GET', path: '/v1/insight-v2/prompt');
+  Future<InsightV2PromptInfo> getPrompt({String? key}) async {
+    final json = await _send(
+      method: 'GET',
+      path: '/v1/insight-v2/prompt',
+      query: _keyQuery(key),
+    );
     return _parse(json, InsightV2PromptInfo.fromJson, 'PROMPT');
   }
 
   @override
-  Future<InsightV2PromptInfo> updatePrompt(String content) async {
+  Future<InsightV2PromptInfo> updatePrompt(String content, {String? key}) async {
     final json = await _send(
       method: 'PUT',
       path: '/v1/insight-v2/prompt',
+      query: _keyQuery(key),
       body: jsonEncode({'content': content}),
     );
     return _parse(json, InsightV2PromptInfo.fromJson, 'PROMPT');
   }
 
   @override
-  Future<InsightV2PromptInfo> resetPrompt() async {
-    final json = await _send(method: 'DELETE', path: '/v1/insight-v2/prompt');
+  Future<InsightV2PromptInfo> resetPrompt({String? key}) async {
+    final json = await _send(
+      method: 'DELETE',
+      path: '/v1/insight-v2/prompt',
+      query: _keyQuery(key),
+    );
     return _parse(json, InsightV2PromptInfo.fromJson, 'PROMPT');
   }
+
+  Map<String, String>? _keyQuery(String? key) =>
+      (key == null || key.isEmpty) ? null : {'key': key};
 
   T _parse<T>(
     Map<String, Object?> json,

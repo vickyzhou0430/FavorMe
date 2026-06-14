@@ -321,6 +321,17 @@ DateTime? _parseDate(Object? value) {
   return null;
 }
 
+/// 调参页可切换的 prompt key（与后端 InsightV2Service.promptKeyDefaults 白名单一致）。
+abstract final class InsightV2PromptKey {
+  static const String system = 'insight-v2.system';
+  static const String profileAugmentation = 'insight-v2.profile-augmentation';
+
+  /// 默认 key（兼容旧调用：不传 key 时后端走 system）。
+  static const String defaultKey = system;
+
+  static const List<String> all = <String>[system, profileAugmentation];
+}
+
 /// Prompt 运行时调参信息（debug 用）。
 class InsightV2PromptInfo {
   const InsightV2PromptInfo({

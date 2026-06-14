@@ -320,18 +320,29 @@ export class InsightV2Service {
     };
   }
 
+  /**
+   * 可在 debug 调参页修改的 prompt key 白名单。
+   * 任何不在表内的 key 都会被 400 拒绝（防止误传覆盖到无关 key）。
+   */
+  private readonly promptKeyDefaults: Record<string, string> = {
+    [INSIGHT_V2_SYSTEM_PROMPT_KEY]: INSIGHT_V2_SYSTEM_PROMPT,
+    [INSIGHT_V2_PROFILE_PROMPT_KEY]: INSIGHT_V2_PROFILE_PROMPT_TEMPLATE,
+  };
+
   /** 读取当前生效提示词与覆盖状态（debug 调参用）。 */
-  async getPromptInfo(): Promise<Record<string, unknown>> {
+  async getPromptInfo(key?: string): Promise<Record<string, unknown>> {
+    const resolvedKey = this.resolvePromptKey(key);
+    const fallback = this.promptKeyDefaults[resolvedKey];
     const enabled = this.prompts.isOverrideEnabled();
-    const override = await this.prompts.getOverride(INSIGHT_V2_SYSTEM_PROMPT_KEY);
+    const override = await this.prompts.getOverride(resolvedKey);
     const hasOverride = !!override?.content?.trim();
     return {
-      key: INSIGHT_V2_SYSTEM_PROMPT_KEY,
+      key: resolvedKey,
       enabled,
       hasOverride,
-      defaultPrompt: INSIGHT_V2_SYSTEM_PROMPT,
+      defaultPrompt: fallback,
       effectivePrompt:
-        enabled && hasOverride ? override!.content : INSIGHT_V2_SYSTEM_PROMPT,
+        enabled && hasOverride ? override!.content : fallback,
       override: override
         ? {
             content: override.content,
@@ -343,17 +354,36 @@ export class InsightV2Service {
   }
 
   /** 上传覆盖提示词。仅在功能开启时允许。 */
-  async setPrompt(content: string, updatedBy?: string): Promise<Record<string, unknown>> {
+  async setPrompt(
+    content: string,
+    updatedBy?: string,
+    key?: string,
+  ): Promise<Record<string, unknown>> {
     this.assertOverrideEnabled();
-    await this.prompts.setOverride(INSIGHT_V2_SYSTEM_PROMPT_KEY, content, updatedBy);
-    return this.getPromptInfo();
+    const resolvedKey = this.resolvePromptKey(key);
+    await this.prompts.setOverride(resolvedKey, content, updatedBy);
+    return this.getPromptInfo(resolvedKey);
   }
 
   /** 清除覆盖，回退到内置默认。仅在功能开启时允许。 */
-  async resetPrompt(): Promise<Record<string, unknown>> {
+  async resetPrompt(key?: string): Promise<Record<string, unknown>> {
     this.assertOverrideEnabled();
-    await this.prompts.clearOverride(INSIGHT_V2_SYSTEM_PROMPT_KEY);
-    return this.getPromptInfo();
+    const resolvedKey = this.resolvePromptKey(key);
+    await this.prompts.clearOverride(resolvedKey);
+    return this.getPromptInfo(resolvedKey);
+  }
+
+  private resolvePromptKey(key?: string): string {
+    if (!key) {
+      return INSIGHT_V2_SYSTEM_PROMPT_KEY;
+    }
+    if (!(key in this.promptKeyDefaults)) {
+      throw new BadRequestException({
+        code: 'INVALID_PROMPT_KEY',
+        message: `不允许的 prompt key：${key}`,
+      });
+    }
+    return key;
   }
 
   private assertOverrideEnabled(): void {

@@ -10,35 +10,54 @@ class FakePromptClient implements InsightV2Client {
   final bool enabled;
   String? uploaded;
   int resetCount = 0;
-  String _effective = '默认提示词';
+  String? lastRequestedKey;
 
-  InsightV2PromptInfo _info() {
+  /// 每个 key 一份默认 + effective，方便测试下拉切换时拿到不同文案。
+  final Map<String, String> _defaults = {
+    InsightV2PromptKey.system: '默认提示词',
+    InsightV2PromptKey.profileAugmentation: '默认 augmentation 文本',
+  };
+  final Map<String, String> _effective = {
+    InsightV2PromptKey.system: '默认提示词',
+    InsightV2PromptKey.profileAugmentation: '默认 augmentation 文本',
+  };
+
+  InsightV2PromptInfo _info(String key) {
     return InsightV2PromptInfo(
-      key: 'insight-v2.system',
+      key: key,
       enabled: enabled,
       hasOverride: uploaded != null,
-      defaultPrompt: '默认提示词',
-      effectivePrompt: _effective,
+      defaultPrompt: _defaults[key] ?? '',
+      effectivePrompt: _effective[key] ?? '',
       updatedBy: uploaded != null ? 'dev-1' : null,
     );
   }
 
-  @override
-  Future<InsightV2PromptInfo> getPrompt() async => _info();
+  String _resolveKey(String? key) => key ?? InsightV2PromptKey.system;
 
   @override
-  Future<InsightV2PromptInfo> updatePrompt(String content) async {
-    uploaded = content;
-    _effective = content;
-    return _info();
+  Future<InsightV2PromptInfo> getPrompt({String? key}) async {
+    lastRequestedKey = _resolveKey(key);
+    return _info(lastRequestedKey!);
   }
 
   @override
-  Future<InsightV2PromptInfo> resetPrompt() async {
+  Future<InsightV2PromptInfo> updatePrompt(String content, {String? key}) async {
+    final resolved = _resolveKey(key);
+    lastRequestedKey = resolved;
+    uploaded = content;
+    _effective[resolved] = content;
+    return _info(resolved);
+  }
+
+  @override
+  Future<InsightV2PromptInfo> resetPrompt({String? key}) async {
+    final resolved = _resolveKey(key);
+    lastRequestedKey = resolved;
     resetCount++;
     uploaded = null;
-    _effective = '默认提示词';
-    return _info();
+    _effective[resolved] = _defaults[resolved] ?? '';
+    return _info(resolved);
   }
 
   @override
@@ -95,5 +114,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('后端未开启覆盖功能（只读）。'), findsOneWidget);
+  });
+
+  testWidgets('switching key dropdown reloads the augmentation prompt', (tester) async {
+    final client = FakePromptClient(enabled: true);
+    await tester.pumpWidget(MaterialApp(home: PromptDebugScreen(client: client)));
+    await tester.pumpAndSettle();
+
+    // 默认拉的是 system key。
+    expect(client.lastRequestedKey, InsightV2PromptKey.system);
+    expect(find.widgetWithText(TextField, '默认提示词'), findsOneWidget);
+
+    // 切到 augmentation：dropdown 在 Selector 卡片里。
+    await tester.tap(find.text('基底 system prompt'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('个性化增强 (profile augmentation)').last);
+    await tester.pumpAndSettle();
+
+    expect(client.lastRequestedKey, InsightV2PromptKey.profileAugmentation);
+    expect(find.widgetWithText(TextField, '默认 augmentation 文本'), findsOneWidget);
+
+    // 在新 key 上上传，验证 key 透传。
+    await tester.enterText(find.byType(TextField), '新的 augmentation');
+    await tester.tap(find.text('上传'));
+    await tester.pumpAndSettle();
+    expect(client.uploaded, '新的 augmentation');
+    expect(client.lastRequestedKey, InsightV2PromptKey.profileAugmentation);
   });
 }

@@ -17,12 +17,19 @@ class PromptDebugScreen extends StatefulWidget {
   State<PromptDebugScreen> createState() => _PromptDebugScreenState();
 }
 
+/// 调参支持的 key → 下拉里展示的中文。
+const Map<String, String> _kPromptKeyLabels = <String, String>{
+  InsightV2PromptKey.system: '基底 system prompt',
+  InsightV2PromptKey.profileAugmentation: '个性化增强 (profile augmentation)',
+};
+
 class _PromptDebugScreenState extends State<PromptDebugScreen> {
   final TextEditingController _controller = TextEditingController();
   bool _loading = true;
   bool _saving = false;
   String? _error;
   InsightV2PromptInfo? _info;
+  String _selectedKey = InsightV2PromptKey.defaultKey;
 
   @override
   void initState() {
@@ -42,7 +49,7 @@ class _PromptDebugScreenState extends State<PromptDebugScreen> {
       _error = null;
     });
     try {
-      final info = await widget.client.getPrompt();
+      final info = await widget.client.getPrompt(key: _selectedKey);
       if (!mounted) {
         return;
       }
@@ -62,6 +69,14 @@ class _PromptDebugScreenState extends State<PromptDebugScreen> {
     }
   }
 
+  Future<void> _onKeyChanged(String? key) async {
+    if (key == null || key == _selectedKey || _loading || _saving) {
+      return;
+    }
+    setState(() => _selectedKey = key);
+    await _load();
+  }
+
   Future<void> _upload() async {
     final content = _controller.text.trim();
     if (content.isEmpty) {
@@ -70,7 +85,7 @@ class _PromptDebugScreenState extends State<PromptDebugScreen> {
     }
     setState(() => _saving = true);
     try {
-      final info = await widget.client.updatePrompt(content);
+      final info = await widget.client.updatePrompt(content, key: _selectedKey);
       if (!mounted) {
         return;
       }
@@ -92,7 +107,7 @@ class _PromptDebugScreenState extends State<PromptDebugScreen> {
   Future<void> _reset() async {
     setState(() => _saving = true);
     try {
-      final info = await widget.client.resetPrompt();
+      final info = await widget.client.resetPrompt(key: _selectedKey);
       if (!mounted) {
         return;
       }
@@ -180,6 +195,12 @@ class _PromptDebugScreenState extends State<PromptDebugScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _PromptKeySelector(
+            selected: _selectedKey,
+            enabled: !_saving,
+            onChanged: _onKeyChanged,
+          ),
+          const SizedBox(height: 12),
           if (info != null) _StatusBanner(info: info),
           const SizedBox(height: 12),
           Expanded(
@@ -229,6 +250,54 @@ class _PromptDebugScreenState extends State<PromptDebugScreen> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PromptKeySelector extends StatelessWidget {
+  const _PromptKeySelector({
+    required this.selected,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String selected;
+  final bool enabled;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderSoft),
+      ),
+      child: Row(
+        children: [
+          const Text('Prompt：', style: AppTypography.body),
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selected,
+                isExpanded: true,
+                onChanged: enabled ? onChanged : null,
+                items: [
+                  for (final key in InsightV2PromptKey.all)
+                    DropdownMenuItem(
+                      value: key,
+                      child: Text(
+                        _kPromptKeyLabels[key] ?? key,
+                        style: AppTypography.body,
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

@@ -132,4 +132,4 @@ PromptOverride 的两个 key：
 - `insight-v2.system`（已有）
 - `insight-v2.profile-augmentation`（新增）
 
-可在 Flutter "Prompt 调参" 页（需 `INSIGHT_V2_PROMPT_OVERRIDE_ENABLED=true`）独立调参——但当前 Prompt 调参页只面向 `insight-v2.system`，若要调 augmentation 需后续在 debug 页加 key 切换或单开一页。
+✅ 已支持在 Flutter "Prompt 调参" 页（需 `INSIGHT_V2_PROMPT_OVERRIDE_ENABLED=true`）通过顶部下拉切换两个 key 独立调参。后端 `GET/PUT/DELETE /v1/insight-v2/prompt` 支持 `?key=` query 参数，白名单见 `InsightV2Service.promptKeyDefaults`；非法 key 返回 `400 INVALID_PROMPT_KEY`。

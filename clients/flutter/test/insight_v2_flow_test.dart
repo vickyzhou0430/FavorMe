@@ -111,14 +111,16 @@ class FakeV2Client implements InsightV2Client {
   }
 
   @override
-  Future<InsightV2PromptInfo> getPrompt() async => throw UnimplementedError();
-
-  @override
-  Future<InsightV2PromptInfo> updatePrompt(String content) async =>
+  Future<InsightV2PromptInfo> getPrompt({String? key}) async =>
       throw UnimplementedError();
 
   @override
-  Future<InsightV2PromptInfo> resetPrompt() async => throw UnimplementedError();
+  Future<InsightV2PromptInfo> updatePrompt(String content, {String? key}) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<InsightV2PromptInfo> resetPrompt({String? key}) async =>
+      throw UnimplementedError();
 }
 
 Future<void> _settle(WidgetTester tester) async {

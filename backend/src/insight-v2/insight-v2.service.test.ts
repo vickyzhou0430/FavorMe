@@ -6,8 +6,14 @@ import type { PromptService } from '../prompt/prompt.service';
 import { InsightV2Service } from './insight-v2.service';
 import {
   buildAnswerUserMessage,
+  INSIGHT_V2_SYSTEM_PROMPT,
+  INSIGHT_V2_SYSTEM_PROMPT_KEY,
   type InsightV2StrategyKey,
 } from './prompts/insight-v2.prompt';
+import {
+  INSIGHT_V2_PROFILE_PROMPT_KEY,
+  INSIGHT_V2_PROFILE_PROMPT_TEMPLATE,
+} from './prompts/insight-v2-profile.prompt';
 
 const ctx = { requestId: 'r1', deviceId: 'dev1' };
 
@@ -324,6 +330,73 @@ describe('profile augmentation injection', () => {
     assert.ok(sys.includes('双鱼座'), 'zodiac label rendered');
     assert.ok(sys.includes('女'), 'gender label rendered');
     assert.match(sys, /\d+ 岁/, 'age computed from birthday');
+  });
+});
+
+describe('prompt key whitelist on /prompt endpoints', () => {
+  function makePromptHarness() {
+    const overrides = new Map<string, string>();
+    const prompts = {
+      isOverrideEnabled: () => true,
+      async getEffectivePrompt(key: string, fallback: string) {
+        return overrides.get(key) ?? fallback;
+      },
+      async getOverride(key: string) {
+        const content = overrides.get(key);
+        return content
+          ? { key, content, updatedAt: new Date(), updatedBy: 'dev' }
+          : null;
+      },
+      async setOverride(key: string, content: string, updatedBy?: string) {
+        overrides.set(key, content);
+        return { key, content, updatedAt: new Date(), updatedBy: updatedBy ?? null };
+      },
+      async clearOverride(key: string) {
+        overrides.delete(key);
+      },
+    } as unknown as PromptService;
+    const service = new InsightV2Service(
+      {} as unknown as LlmService,
+      {} as unknown as PrismaService,
+      prompts,
+    );
+    return { service, overrides };
+  }
+
+  test('default getPromptInfo() returns system key', async () => {
+    const { service } = makePromptHarness();
+    const info = await service.getPromptInfo();
+    assert.equal(info.key, INSIGHT_V2_SYSTEM_PROMPT_KEY);
+    assert.equal(info.defaultPrompt, INSIGHT_V2_SYSTEM_PROMPT);
+  });
+
+  test('getPromptInfo("insight-v2.profile-augmentation") returns augmentation default', async () => {
+    const { service } = makePromptHarness();
+    const info = await service.getPromptInfo(INSIGHT_V2_PROFILE_PROMPT_KEY);
+    assert.equal(info.key, INSIGHT_V2_PROFILE_PROMPT_KEY);
+    assert.equal(info.defaultPrompt, INSIGHT_V2_PROFILE_PROMPT_TEMPLATE);
+  });
+
+  test('unknown key is rejected with BadRequestException', async () => {
+    const { service } = makePromptHarness();
+    await assert.rejects(
+      () => service.getPromptInfo('totally-bogus-key'),
+      (err: { status?: number; response?: { code?: string } }) =>
+        err.status === 400 && err.response?.code === 'INVALID_PROMPT_KEY',
+    );
+  });
+
+  test('setPrompt + resetPrompt routes by key independently', async () => {
+    const { service, overrides } = makePromptHarness();
+    await service.setPrompt('new sys', 'dev', INSIGHT_V2_SYSTEM_PROMPT_KEY);
+    await service.setPrompt('new aug', 'dev', INSIGHT_V2_PROFILE_PROMPT_KEY);
+    assert.equal(overrides.get(INSIGHT_V2_SYSTEM_PROMPT_KEY), 'new sys');
+    assert.equal(overrides.get(INSIGHT_V2_PROFILE_PROMPT_KEY), 'new aug');
+
+    await service.resetPrompt(INSIGHT_V2_SYSTEM_PROMPT_KEY);
+    assert.equal(overrides.has(INSIGHT_V2_SYSTEM_PROMPT_KEY), false);
+    // augmentation override should be untouched
+    assert.equal(overrides.get(INSIGHT_V2_PROFILE_PROMPT_KEY), 'new aug');
   });
 });
 

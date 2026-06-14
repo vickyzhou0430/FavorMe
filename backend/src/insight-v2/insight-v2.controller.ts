@@ -54,20 +54,26 @@ export class InsightV2Controller {
   }
 
   // --- Prompt 运行时调参（debug 用；写操作需 INSIGHT_V2_PROMPT_OVERRIDE_ENABLED=true） ---
+  // `?key=` 可选；省略时默认 system prompt，保持旧客户端兼容。
+  // 白名单见 InsightV2Service.promptKeyDefaults，非法 key 返回 400 INVALID_PROMPT_KEY。
 
   @Get('prompt')
-  getPrompt() {
-    return this.insightV2.getPromptInfo();
+  getPrompt(@Query('key') key?: string) {
+    return this.insightV2.getPromptInfo(key);
   }
 
   @Put('prompt')
-  updatePrompt(@Body() body: UpdatePromptDto, @Req() request: RequestWithContext) {
-    return this.insightV2.setPrompt(body.content, request.deviceId);
+  updatePrompt(
+    @Body() body: UpdatePromptDto,
+    @Req() request: RequestWithContext,
+    @Query('key') key?: string,
+  ) {
+    return this.insightV2.setPrompt(body.content, request.deviceId, key);
   }
 
   @Delete('prompt')
-  resetPrompt() {
-    return this.insightV2.resetPrompt();
+  resetPrompt(@Query('key') key?: string) {
+    return this.insightV2.resetPrompt(key);
   }
 
   private context(request: RequestWithContext) {
